@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>貓咪飲食追蹤器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        h1, h2 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+        
+        .food-selector {
+            margin-bottom: 15px;
+        }
+        
+        select, input, button {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+        
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        
+        button:hover {
+            background: #2980b9;
+        }
+        
+        .remove-btn {
+            background: #e74c3c;
+            padding: 8px 15px;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        
+        .remove-btn:hover {
+            background: #c0392b;
+        }
+        
+        .selected-food {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 4px solid #3498db;
+        }
+        
+        .food-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .total-calories {
+            background: #27ae60;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+        
+        .history-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 4px solid #9b59b6;
+        }
+        
+        .date-calories {
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+        
+        .meal-detail {
+            font-size: 14px;
+            color: #666;
+            margin-left: 10px;
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .food-info {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+        
+        .chart-container {
+            height: 300px;
+            margin: 20px 0;
+        }
+        
+        .sync-status {
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        .sync-success {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .sync-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>🐱 貓咪飲食追蹤器</h1>
+        
+        <div id="syncStatus" class="sync-status" style="display: none;"></div>
+        
+        <div class="card">
+            <h2>新增餐點記錄</h2>
+            <div id="foodSelectors">
+                <div class="food-selector">
+                    <select id="foodSelect0">
+                        <option value="">選擇食物...</option>
+                    </select>
+                    <input type="number" id="grams0" placeholder="重量 (克)" step="0.1" min="0">
+                </div>
+            </div>
+            <button onclick="addFoodSelector()">+ 新增食物</button>
+            <div id="feedingSummary" style="display: none;">
+                <div class="total-calories">
+                    總餵食: <span id="totalFeedGrams">0</span>g | 總卡路里: <span id="totalCalories">0</span> kcal
+                </div>
+                <input type="number" id="actualEatenGrams" placeholder="實際吃了多少克" step="0.1" min="0">
+                <div id="actualCalories" class="total-calories" style="display: none; background: #e74c3c;">
+                    實際攝取: <span id="actualCaloriesValue">0</span> kcal
+                </div>
+            </div>
+            <button onclick="saveMeal()" id="saveMealBtn" style="display: none;">儲存這餐</button>
+        </div>
+        
+        <div class="card">
+            <h2>卡路里趨勢圖</h2>
+            <div class="chart-container">
+                <canvas id="caloriesChart"></canvas>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>飲食記錄</h2>
+            <div id="historyList"></div>
+        </div>
+    </div>
+
+    <script>
+        // 貓糧資料庫
+        const foodDatabase = [
+            {name: "catdives 貓爾地夫 全齡貓營養升級 魩仔魚+板腱牛+雞胸肉", calories: 100.2},
+            {name: "catdives 貓爾地夫 全齡貓營養升級 魩仔魚+鮪魚+雞胸肉", calories: 97.9},
+            {name: "catdives 貓爾地夫 經典回味 嚴選羊雞胸肉", calories: 102.8},
+            {name: "catdives 貓爾地夫 經典回味 板腱牛雞胸肉", calories: 107.9},
+            {name: "catdives 貓爾地夫 經典回味 雞胸肉", calories: 100.3},
+            {name: "catdives 貓爾地夫 經典回味 鮪魚雞胸肉", calories: 97.3},
+            {name: "catdives 貓爾地夫 頂級享受 嚴選鹿", calories: 84.7},
+            {name: "catdives 貓爾地夫 頂級享受 菲力牛", calories: 95.3},
+            {name: "Dog Cat Star 汪喵星球 冷凍乾燥生食-櫻桃鴨", calories: 480},
+            {name: "Dr. Wish 雞肉+鮪魚+牛磺酸", calories: 39},
+            {name: "Dr. Wish 鮪魚+果寡糖", calories: 34},
+            {name: "Dr. Wish 鮪魚+維他命A", calories: 34},
+            {name: "Dr. Wish 鮪魚+雞肉+維他命B群", calories: 32},
+            {name: "K9 Natural 無穀牛", calories: 112.3},
+            {name: "K9 Natural 無穀牛+鱈魚", calories: 94.5},
+            {name: "K9 Natural 無穀羊", calories: 121.1},
+            {name: "K9 Natural 無穀羊+鮭魚", calories: 106},
+            {name: "K9 Natural 無穀雞", calories: 101.3},
+            {name: "K9 Natural 無穀雞+鹿", calories: 86.2},
+            {name: "Lady Flavor 好味小姐 1+1 幼母貓 厚奶燉雞", calories: 127.5},
+            {name: "Lady Flavor 好味小姐 1+1 幼母貓 厚奶虱目魚", calories: 127.5},
+            {name: "Lady Flavor 好味小姐 1+1 幼母貓 厚奶鱸魚", calories: 126.5},
+            {name: "Lady Flavor 好味小姐 1+1滴雞精-原野牛腿", calories: 124.2},
+            {name: "Lady Flavor 好味小姐 1+1滴雞精-白蝦干貝", calories: 103.7},
+            {name: "Lady Flavor 好味小姐 1+1滴雞精-肥美鯖魚", calories: 114.4},
+            {name: "Lady Flavor 好味小姐 1+1滴雞精-野味火雞", calories: 118.1},
+            {name: "Lady Flavor 好味小姐 1+1滴雞精-香嫩鴨胸", calories: 117.3},
+            {name: "Lady Flavor 好味小姐 1+1滴雞精-鮮香鰹魚", calories: 120.6},
+            {name: "Lady Flavor 好味小姐 1+1益生菌 四種魚｜白肉", calories: 123.2},
+            {name: "Lady Flavor 好味小姐 1+1益生菌 四種魚｜紅肉", calories: 117.8},
+            {name: "Lady Flavor 好味小姐 1+1益生菌 綜合海陸", calories: 117.8},
+            {name: "Lady Flavor 好味小姐 1+1益生菌 綜合蝦貝", calories: 116.3},
+            {name: "Lady Flavor 好味小姐 1+1益生菌 綜合野味", calories: 117.8},
+            {name: "Lady Flavor 好味小姐 1+1益生菌 雞肉莓果", calories: 115.1},
+            {name: "Lady Flavor 好味小姐 1+1貓鮮食 慢燉鮮魚", calories: 112.1},
+            {name: "Lady Flavor 好味小姐 1+1貓鮮食 濃湯牛腿", calories: 112.1},
+            {name: "Lady Flavor 好味小姐 1+1貓鮮食 白醬嫩雞", calories: 100.1},
+            {name: "LitoMON 怪獸部落 98%鮮肉-雞肉", calories: 415},
+            {name: "MAC's 馬克 幼貓-火雞肉+兔肉", calories: 98},
+            {name: "MAC's 馬克 火雞肉+火雞心", calories: 89},
+            {name: "MAC's 馬克 羊肉", calories: 90},
+            {name: "MAC's 馬克 羊肉+火雞肉", calories: 98},
+            {name: "MAC's 馬克 雞肉+雞心", calories: 111},
+            {name: "MAC's 馬克 鮭魚+雞肉", calories: 98},
+            {name: "MAC's 馬克 鴨肉+火雞肉+雞肉", calories: 101},
+            {name: "Meow Servant 喵皇奴 純雞肉", calories: 114},
+            {name: "Meow Servant 喵皇奴 雞肉+牛肉", calories: 120},
+            {name: "Meow Servant 喵皇奴 鮭魚+雞肉", calories: 121},
+            {name: "Meow Servant 喵皇奴 鵪鶉+雞肉", calories: 115},
+            {name: "Orijen 歐睿健 幼貓鮮雞", calories: 412},
+            {name: "ROYAL CANIN 皇家 K36 幼貓專用", calories: 370},
+            {name: "ROYAL CANIN 皇家 LP34 泌尿道配方乾糧", calories: 387.2},
+            {name: "ROYAL CANIN 皇家 S33W 腸胃保健", calories: 78.8},
+            {name: "ROYAL CANIN 皇家 幼貓", calories: 80.6},
+            {name: "ZIWIPeak 巔峰 雞肉", calories: 550}
+        ];
+
+        let foodSelectorCount = 1;
+        let currentMeal = [];
+        let mealHistory = [];
+        let chart = null;
+
+        // 初始化
+        function init() {
+            populateFoodSelect('foodSelect0');
+            loadHistoryFromStorage();
+            updateChart();
+            
+            // 綁定事件
+            document.getElementById('grams0').addEventListener('input', calculateCalories);
+        }
+
+        // 填充食物選項
+        function populateFoodSelect(selectId) {
+            const select = document.getElementById(selectId);
+            select.innerHTML = '<option value="">選擇食物...</option>';
+            
+            foodDatabase.forEach((food, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = food.name;
+                select.appendChild(option);
+            });
+            
+            select.addEventListener('change', calculateCalories);
+        }
+
+        // 新增食物選擇器
+        function addFoodSelector() {
+            const container = document.getElementById('foodSelectors');
+            const newSelector = document.createElement('div');
+            newSelector.className = 'food-selector';
+            newSelector.innerHTML = `
+                <select id="foodSelect${foodSelectorCount}">
+                    <option value="">選擇食物...</option>
+                </select>
+                <input type="number" id="grams${foodSelectorCount}" placeholder="重量 (克)" step="0.1" min="0">
+                <button type="button" class="remove-btn" onclick="removeFoodSelector(this)">移除</button>
+            `;
+            
+            container.appendChild(newSelector);
+            populateFoodSelect(`foodSelect${foodSelectorCount}`);
+            
+            document.getElementById(`grams${foodSelectorCount}`).addEventListener('input', calculateCalories);
+            
+            foodSelectorCount++;
+        }
+
+        // 移除食物選擇器
+        function removeFoodSelector(button) {
+            button.parentElement.remove();
+            calculateCalories();
+        }
+
+        // 計算卡路里
+        function calculateCalories() {
+            const selectors = document.querySelectorAll('.food-selector');
+            let totalFeedCalories = 0;
+            let totalFeedGrams = 0;
+            currentMeal = [];
+
+            selectors.forEach((selector, index) => {
+                const foodSelect = selector.querySelector('select');
+                const gramsInput = selector.querySelector('input[type="number"]');
+                
+                const foodIndex = foodSelect.value;
+                const grams = parseFloat(gramsInput.value) || 0;
+                
+                if (foodIndex !== '' && grams > 0) {
+                    const food = foodDatabase[foodIndex];
+                    const calories = (food.calories * grams / 100);  // 每100g的卡路里
+                    totalFeedCalories += calories;
+                    totalFeedGrams += grams;
+                    
+                    currentMeal.push({
+                        name: food.name,
+                        feedGrams: grams,
+                        caloriesPerGram: food.calories / 100
+                    });
+                }
+            });
+
+            const summaryElement = document.getElementById('feedingSummary');
+            const saveBtn = document.getElementById('saveMealBtn');
+            
+            if (totalFeedGrams > 0) {
+                document.getElementById('totalFeedGrams').textContent = totalFeedGrams.toFixed(1);
+                document.getElementById('totalCalories').textContent = totalFeedCalories.toFixed(1);
+                summaryElement.style.display = 'block';
+                
+                // 綁定實際吃了多少的計算
+                const actualEatenInput = document.getElementById('actualEatenGrams');
+                actualEatenInput.oninput = function() {
+                    calculateActualCalories(totalFeedCalories, totalFeedGrams);
+                };
+                
+                saveBtn.style.display = 'block';
+            } else {
+                summaryElement.style.display = 'none';
+                saveBtn.style.display = 'none';
+            }
+        }
+
+        // 計算實際攝取卡路里
+        function calculateActualCalories(totalFeedCalories, totalFeedGrams) {
+            const actualEatenGrams = parseFloat(document.getElementById('actualEatenGrams').value) || 0;
+            
+            if (actualEatenGrams > 0) {
+                // 按比例計算實際攝取的卡路里
+                const ratio = actualEatenGrams / totalFeedGrams;
+                const actualCalories = totalFeedCalories * ratio;
+                
+                document.getElementById('actualCaloriesValue').textContent = actualCalories.toFixed(1);
+                document.getElementById('actualCalories').style.display = 'block';
+                
+                // 更新 currentMeal 資料
+                currentMeal.forEach(food => {
+                    food.actualGrams = food.feedGrams * ratio;
+                    food.actualCalories = food.caloriesPerGram * food.actualGrams;
+                });
+                
+                return actualCalories;
+            } else {
+                document.getElementById('actualCalories').style.display = 'none';
+                return 0;
+            }
+        }
+
+        // 儲存餐點
+        function saveMeal() {
+            if (currentMeal.length === 0) return;
+            
+            const actualEatenGrams = parseFloat(document.getElementById('actualEatenGrams').value);
+            if (!actualEatenGrams || actualEatenGrams <= 0) {
+                alert('請輸入實際吃了多少克');
+                return;
+            }
+            
+            const totalFeedGrams = currentMeal.reduce((sum, food) => sum + food.feedGrams, 0);
+            const totalFeedCalories = currentMeal.reduce((sum, food) => sum + (food.caloriesPerGram * food.feedGrams), 0);
+            const actualCalories = calculateActualCalories(totalFeedCalories, totalFeedGrams);
+            
+            const now = new Date();
+            const dateStr = now.toISOString().split('T')[0];
+            const timeStr = now.toTimeString().split(' ')[0].slice(0, 5);
+            
+            const meal = {
+                date: dateStr,
+                time: timeStr,
+                foods: currentMeal.map(food => ({
+                    name: food.name,
+                    feedGrams: food.feedGrams,
+                    actualGrams: food.actualGrams,
+                    actualCalories: food.actualCalories
+                })),
+                totalFeedGrams: totalFeedGrams,
+                actualEatenGrams: actualEatenGrams,
+                totalFeedCalories: totalFeedCalories,
+                actualCalories: actualCalories
+            };
+            
+            mealHistory.unshift(meal);
+            saveHistoryToStorage();
+            syncToCloud();
+            
+            // 清空表單
+            resetForm();
+            
+            // 更新顯示
+            displayHistory();
+            updateChart();
+            
+            showSyncStatus('餐點已記錄！', 'success');
+        }
+
+        // 重置表單
+        function resetForm() {
+            const container = document.getElementById('foodSelectors');
+            container.innerHTML = `
+                <div class="food-selector">
+                    <select id="foodSelect0">
+                        <option value="">選擇食物...</option>
+                    </select>
+                    <input type="number" id="grams0" placeholder="重量 (克)" step="0.1" min="0">
+                </div>
+            `;
+            
+            foodSelectorCount = 1;
+            populateFoodSelect('foodSelect0');
+            document.getElementById('grams0').addEventListener('input', calculateCalories);
+            
+            document.getElementById('totalCalories').style.display = 'none';
+            document.getElementById('feedingSummary').style.display = 'none';
+            document.getElementById('saveMealBtn').style.display = 'none';
+            
+            currentMeal = [];
+        }
+
+        // 顯示歷史記錄
+        function displayHistory() {
+            const historyList = document.getElementById('historyList');
+            
+            if (mealHistory.length === 0) {
+                historyList.innerHTML = '<p>尚無飲食記錄</p>';
+                return;
+            }
+            
+            // 按日期分組
+            const groupedHistory = {};
+            mealHistory.forEach(meal => {
+                if (!groupedHistory[meal.date]) {
+                    groupedHistory[meal.date] = [];
+                }
+                groupedHistory[meal.date].push(meal);
+            });
+            
+            historyList.innerHTML = '';
+            
+            Object.keys(groupedHistory).sort().reverse().forEach(date => {
+                const dayMeals = groupedHistory[date];
+                const dayTotal = dayMeals.reduce((sum, meal) => sum + (meal.actualCalories || meal.totalCalories || 0), 0);
+                
+                const dayElement = document.createElement('div');
+                dayElement.className = 'history-item';
+                
+                let mealsHtml = '';
+                dayMeals.forEach(meal => {
+                    const foodsText = meal.foods.map(f => `${f.name} ${f.feedGrams}g`).join(', ');
+                    mealsHtml += `
+                        <div class="meal-detail">
+                            ${meal.time} - 實際攝取: ${meal.actualCalories.toFixed(1)} kcal (餵${meal.totalFeedGrams.toFixed(1)}g，吃${meal.actualEatenGrams.toFixed(1)}g)<br>
+                            <small>${foodsText}</small>
+                        </div>
+                    `;
+                });
+                
+                dayElement.innerHTML = `
+                    <div class="date-calories">${date} - 總計: ${dayTotal.toFixed(1)} kcal</div>
+                    ${mealsHtml}
+                `;
+                
+                historyList.appendChild(dayElement);
+            });
+        }
+
+        // 更新圖表
+        function updateChart() {
+            const ctx = document.getElementById('caloriesChart').getContext('2d');
+            
+            // 準備圖表資料
+            const dailyCalories = {};
+            mealHistory.forEach(meal => {
+                if (!dailyCalories[meal.date]) {
+                    dailyCalories[meal.date] = 0;
+                }
+                dailyCalories[meal.date] += (meal.actualCalories || meal.totalCalories || 0);
+            });
+            
+            const dates = Object.keys(dailyCalories).sort();
+            const calories = dates.map(date => dailyCalories[date].toFixed(1));
+            
+            if (chart) {
+                chart.destroy();
+            }
+            
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: dates,
+                    datasets: [{
+                        label: '每日卡路里',
+                        data: calories,
+                        borderColor: '#3498db',
+                        backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: '卡路里 (kcal)'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: '日期'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // 本地儲存
+        function saveHistoryToStorage() {
+            localStorage.setItem('catFoodHistory', JSON.stringify(mealHistory));
+        }
+
+        function loadHistoryFromStorage() {
+            const stored = localStorage.getItem('catFoodHistory');
+            if (stored) {
+                mealHistory = JSON.parse(stored);
+                displayHistory();
+            }
+        }
+
+        // 雲端同步功能 (簡化版本，實際需要後端支持)
+        function syncToCloud() {
+            // 這裡可以整合 Firebase 或其他雲端服務
+            // 暫時只是模擬
+            console.log('同步到雲端:', mealHistory);
+        }
+
+        function showSyncStatus(message, type) {
+            const statusElement = document.getElementById('syncStatus');
+            statusElement.textContent = message;
+            statusElement.className = `sync-status sync-${type}`;
+            statusElement.style.display = 'block';
+            
+            setTimeout(() => {
+                statusElement.style.display = 'none';
+            }, 3000);
+        }
+
+        // 頁面載入時初始化
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>
