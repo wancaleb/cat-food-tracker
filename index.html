@@ -119,6 +119,49 @@
             margin-left: 10px;
         }
         
+        .edit-btn {
+            background: #f39c12;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+        
+        .edit-btn:hover {
+            background: #e67e22;
+        }
+        
+        .delete-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            margin-left: 5px;
+        }
+        
+        .delete-btn:hover {
+            background: #c0392b;
+        }
+        
+        .edit-form {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 10px;
+        }
+        
+        .edit-form h4 {
+            margin: 0 0 10px 0;
+            color: #856404;
+        }
+        
         @media (max-width: 600px) {
             .container {
                 padding: 10px;
@@ -182,6 +225,7 @@
                 </div>
             </div>
             <button onclick="saveMeal()" id="saveMealBtn" style="display: none;">儲存這餐</button>
+            <button onclick="cancelEdit()" id="cancelEditBtn" style="display: none; background: #95a5a6; margin-top: 10px;">取消編輯</button>
         </div>
         
         <div class="card">
@@ -261,6 +305,7 @@
         let currentMeal = [];
         let mealHistory = [];
         let chart = null;
+        let editingMealIndex = -1;
 
         // 初始化
         function init() {
@@ -421,7 +466,17 @@
                 actualCalories: actualCalories
             };
             
-            mealHistory.unshift(meal);
+            if (editingMealIndex >= 0) {
+                // 編輯模式：更新現有餐點
+                mealHistory[editingMealIndex] = meal;
+                editingMealIndex = -1;
+                showSyncStatus('餐點已更新！', 'success');
+            } else {
+                // 新增模式：加入新餐點
+                mealHistory.unshift(meal);
+                showSyncStatus('餐點已記錄！', 'success');
+            }
+            
             saveHistoryToStorage();
             syncToCloud();
             
@@ -431,8 +486,6 @@
             // 更新顯示
             displayHistory();
             updateChart();
-            
-            showSyncStatus('餐點已記錄！', 'success');
         }
 
         // 重置表單
@@ -451,11 +504,14 @@
             populateFoodSelect('foodSelect0');
             document.getElementById('grams0').addEventListener('input', calculateCalories);
             
-            document.getElementById('totalCalories').style.display = 'none';
             document.getElementById('feedingSummary').style.display = 'none';
             document.getElementById('saveMealBtn').style.display = 'none';
+            document.getElementById('saveMealBtn').textContent = '儲存這餐';
+            document.getElementById('cancelEditBtn').style.display = 'none';
+            document.getElementById('actualEatenGrams').value = '';
             
             currentMeal = [];
+            editingMealIndex = -1;
         }
 
         // 顯示歷史記錄
@@ -486,11 +542,15 @@
                 dayElement.className = 'history-item';
                 
                 let mealsHtml = '';
-                dayMeals.forEach(meal => {
+                dayMeals.forEach((meal, mealIndex) => {
+                    const globalMealIndex = mealHistory.findIndex(m => m === meal);
                     const foodsText = meal.foods.map(f => `${f.name} ${f.feedGrams}g`).join(', ');
                     mealsHtml += `
-                        <div class="meal-detail">
-                            ${meal.time} - 實際攝取: ${meal.actualCalories.toFixed(1)} kcal (餵${meal.totalFeedGrams.toFixed(1)}g，吃${meal.actualEatenGrams.toFixed(1)}g)<br>
+                        <div class="meal-detail" id="meal-${globalMealIndex}">
+                            ${meal.time} - 實際攝取: ${meal.actualCalories.toFixed(1)} kcal (餵${meal.totalFeedGrams.toFixed(1)}g，吃${meal.actualEatenGrams.toFixed(1)}g)
+                            <button class="edit-btn" onclick="editMeal(${globalMealIndex})">編輯</button>
+                            <button class="delete-btn" onclick="deleteMeal(${globalMealIndex})">刪除</button>
+                            <br>
                             <small>${foodsText}</small>
                         </div>
                     `;
@@ -596,6 +656,88 @@
             }, 3000);
         }
 
+        // 編輯餐點
+        function editMeal(mealIndex) {
+            const meal = mealHistory[mealIndex];
+            if (!meal) return;
+            
+            editingMealIndex = mealIndex;
+            
+            // 清空現有表單
+            const container = document.getElementById('foodSelectors');
+            container.innerHTML = '';
+            
+            // 重建表單以符合要編輯的餐點
+            foodSelectorCount = 0;
+            meal.foods.forEach((food, index) => {
+                const newSelector = document.createElement('div');
+                newSelector.className = 'food-selector';
+                newSelector.innerHTML = `
+                    <select id="foodSelect${foodSelectorCount}">
+                        <option value="">選擇食物...</option>
+                    </select>
+                    <input type="number" id="grams${foodSelectorCount}" placeholder="重量 (克)" step="0.1" min="0" value="${food.feedGrams}">
+                    ${foodSelectorCount > 0 ? '<button type="button" class="remove-btn" onclick="removeFoodSelector(this)">移除</button>' : ''}
+                `;
+                
+                container.appendChild(newSelector);
+                populateFoodSelect(`foodSelect${foodSelectorCount}`);
+                
+                // 設定選中的食物
+                const foodIndex = foodDatabase.findIndex(f => f.name === food.name);
+                if (foodIndex >= 0) {
+                    document.getElementById(`foodSelect${foodSelectorCount}`).value = foodIndex;
+                }
+                
+                document.getElementById(`grams${foodSelectorCount}`).addEventListener('input', calculateCalories);
+                
+                foodSelectorCount++;
+            });
+            
+            // 設定實際攝取量
+            document.getElementById('actualEatenGrams').value = meal.actualEatenGrams;
+            
+            // 重新計算卡路里以顯示預覽
+            calculateCalories();
+            
+            // 修改按鈕文字
+            document.getElementById('saveMealBtn').textContent = '更新餐點';
+            document.getElementById('cancelEditBtn').style.display = 'block';
+            
+            // 滾動到表單頂部
+            document.querySelector('.container').scrollIntoView({ behavior: 'smooth' });
+            
+            showSyncStatus('編輯模式：修改完成後點擊「更新餐點」', 'success');
+        }
+        
+        // 刪除餐點
+        function deleteMeal(mealIndex) {
+            const meal = mealHistory[mealIndex];
+            if (!meal) return;
+            
+            const confirmDelete = confirm(`確定要刪除 ${meal.date} ${meal.time} 的餐點記錄嗎？\n實際攝取: ${meal.actualCalories.toFixed(1)} kcal`);
+            
+            if (confirmDelete) {
+                mealHistory.splice(mealIndex, 1);
+                saveHistoryToStorage();
+                syncToCloud();
+                
+                // 更新顯示
+                displayHistory();
+                updateChart();
+                
+                showSyncStatus('餐點記錄已刪除', 'success');
+            }
+        }
+        
+        // 取消編輯
+        function cancelEdit() {
+            editingMealIndex = -1;
+            resetForm();
+            document.getElementById('saveMealBtn').textContent = '儲存這餐';
+            showSyncStatus('已取消編輯', 'success');
+        }
+        
         // 頁面載入時初始化
         window.addEventListener('load', init);
     </script>
