@@ -262,8 +262,21 @@
                     </label>
                 </div>
             </div>
-            <div id="loadingAuth" style="text-align: center; color: #666;">
-                正在載入 Google API...
+            <div id="loadingAuth" class="google-auth-loading">
+                <p>正在載入 Google API...</p>
+                <small>如果載入時間過長，請檢查網路連線或重新整理頁面</small>
+            </div>
+            <div id="fallbackAuth" style="display: none;">
+                <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; padding: 15px;">
+                    <h4>⚠️ Google API 載入中...</h4>
+                    <p>如果此訊息持續顯示，可能的原因：</p>
+                    <ul>
+                        <li>網路連線問題</li>
+                        <li>廣告攔截器阻擋了 Google API</li>
+                        <li>瀏覽器不支援或禁用了 JavaScript</li>
+                    </ul>
+                    <button onclick="location.reload()" style="background: #3498db; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer;">重新載入頁面</button>
+                </div>
             </div>
         </div>
         
@@ -397,8 +410,15 @@
             // 綁定事件
             document.getElementById('grams0').addEventListener('input', calculateCalories);
             
-            // 初始化 Google API
+            // 初始化 Google API（使用超時處理）
             initializeGoogleAPI();
+            
+            // 設定後備超時機制
+            setTimeout(() => {
+                if (!isGoogleApiLoaded) {
+                    showFallbackAuth();
+                }
+            }, 15000); // 15秒後如果還沒載入完成，顯示後備選項
         }
 
         // 填充食物選項
@@ -827,22 +847,37 @@
         // 初始化 Google API
         async function initializeGoogleAPI() {
             try {
-                document.getElementById('loadingAuth').textContent = '正在載入 Google API...';
+                console.log('開始初始化 Google API...');
+                
+                // 檢查基本的 JavaScript 功能
+                if (typeof window === 'undefined') {
+                    throw new Error('JavaScript 環境異常');
+                }
+                
+                // 更新載入狀態
+                const loadingElement = document.getElementById('loadingAuth');
+                if (loadingElement) {
+                    loadingElement.innerHTML = '<p>正在載入 Google API...</p><small>請稍候，首次載入可能需要幾秒鐘</small>';
+                }
                 
                 // 等待 Google API 腳本載入
                 if (typeof gapi === 'undefined' || typeof google === 'undefined') {
+                    console.log('等待 Google API 腳本載入...');
                     await waitForGoogleAPI();
                 }
+                
+                console.log('Google API 腳本已載入，開始初始化客戶端...');
                 
                 // 使用 Promise 包裝 gapi.load
                 await new Promise((resolve, reject) => {
                     const timeoutId = setTimeout(() => {
-                        reject(new Error('Google API 載入超時'));
-                    }, 10000); // 10秒超時
+                        reject(new Error('Google API 客戶端初始化超時'));
+                    }, 12000); // 12秒超時
                     
                     gapi.load('client:picker', async () => {
                         try {
                             clearTimeout(timeoutId);
+                            console.log('開始初始化 Google Drive 客戶端...');
                             await initClient();
                             resolve();
                         } catch (error) {
@@ -851,14 +886,15 @@
                         }
                     }, (error) => {
                         clearTimeout(timeoutId);
-                        reject(new Error('Google API 載入失敗: ' + error));
+                        reject(new Error('Google API 模組載入失敗: ' + error));
                     });
                 });
                 
+                console.log('初始化 OAuth 2.0...');
                 // 初始化 OAuth 2.0
                 initAuth();
                 
-                console.log('Google API 初始化成功');
+                console.log('Google API 初始化完成');
                 
             } catch (error) {
                 console.error('Google API 初始化失敗:', error);
@@ -1449,6 +1485,49 @@
                 document.getElementById('autoSync').checked = autoSyncEnabled;
             }
         }
+
+        // 顯示後備認證選項
+        function showFallbackAuth() {
+            document.getElementById('loadingAuth').style.display = 'none';
+            document.getElementById('fallbackAuth').style.display = 'block';
+            
+            // 添加調試信息
+            const debugInfo = {
+                gapi: typeof gapi !== 'undefined',
+                google: typeof google !== 'undefined',
+                isGoogleApiLoaded: isGoogleApiLoaded,
+                currentURL: window.location.href,
+                userAgent: navigator.userAgent
+            };
+            
+            console.warn('Google API 載入超時，顯示後備選項');
+            console.log('調試信息:', debugInfo);
+        }
+
+        // 調試模式 - 檢查 Google API 狀態
+        function debugGoogleAPI() {
+            console.log('=== Google API 調試信息 ===');
+            console.log('gapi 是否已載入:', typeof gapi !== 'undefined');
+            console.log('google 是否已載入:', typeof google !== 'undefined');
+            console.log('isGoogleApiLoaded:', isGoogleApiLoaded);
+            console.log('isAuthorized:', isAuthorized);
+            console.log('當前網址:', window.location.href);
+            console.log('GOOGLE_CONFIG:', GOOGLE_CONFIG);
+            
+            if (typeof gapi !== 'undefined') {
+                console.log('gapi.client:', gapi.client);
+                try {
+                    console.log('gapi.client.getToken():', gapi.client.getToken());
+                } catch (e) {
+                    console.log('獲取 token 失敗:', e.message);
+                }
+            }
+            
+            console.log('=== 調試信息結束 ===');
+        }
+
+        // 在 window 對象上暴露調試函數供手動調用
+        window.debugGoogleAPI = debugGoogleAPI;
 
         // 頁面載入時初始化
         window.addEventListener('load', init);
