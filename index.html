@@ -1483,34 +1483,95 @@
             const content = `
                 <div style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 15px;">
                     <h4>🗂️ GitHub Gist 同步設置</h4>
-                    <p>GitHub Gist 是免費、穩定的代碼片段存儲服務，非常適合存儲您的貓咪飲食數據。</p>
+                    <p>GitHub Gist 提供免費、穩定的雲端數據存儲，讓您的貓咪飲食記錄在所有設備間同步。</p>
                     
-                    <div style="background: #e7f3ff; padding: 10px; border-radius: 5px; margin: 10px 0;">
-                        <h6>步驟 1：建立 GitHub 帳戶</h6>
-                        <p>如果您還沒有 GitHub 帳戶：</p>
-                        <a href="https://github.com/join" target="_blank" style="background: #333; color: white; padding: 8px 15px; text-decoration: none; border-radius: 5px;">註冊 GitHub</a>
-                    </div>
-                    
-                    <div style="background: #e7f3ff; padding: 10px; border-radius: 5px; margin: 10px 0;">
-                        <h6>步驟 2：創建個人訪問令牌</h6>
-                        <p>1. 登入 GitHub → 設定 → Developer settings → Personal access tokens</p>
-                        <p>2. 點擊 "Generate new token" → 選擇 "gist" 權限</p>
-                        <p>3. 複製生成的令牌</p>
-                        <a href="https://github.com/settings/tokens" target="_blank" style="background: #333; color: white; padding: 8px 15px; text-decoration: none; border-radius: 5px;">建立令牌</a>
-                    </div>
-                    
-                    <div style="background: #e7f3ff; padding: 10px; border-radius: 5px; margin: 10px 0;">
-                        <h6>步驟 3：設置同步</h6>
-                        <p>將您的 GitHub 令牌貼在下面：</p>
-                        <input type="password" id="githubToken" placeholder="貼上您的 GitHub 個人訪問令牌" style="width: 100%; padding: 8px; margin: 5px 0;">
-                        <button onclick="initGitHubSync()" style="background: #28a745; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer;">開始使用 GitHub 同步</button>
+                    <!-- 快速設置 -->
+                    <div style="background: #e7f3ff; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                        <h5 style="margin: 0 0 10px 0;">⚡ 快速設置</h5>
+                        <p style="margin: 0 0 10px 0;">將您的 GitHub 令牌貼在下面：</p>
+                        <input type="password" id="githubToken" placeholder="貼上您的 GitHub 個人訪問令牌" style="width: 100%; padding: 10px; margin: 5px 0; border: 2px solid #007bff; border-radius: 5px;">
+                        <button onclick="initGitHubSync()" style="background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold;">🚀 開始使用 GitHub 同步</button>
                         <div id="githubSetupResult" style="margin-top: 10px;"></div>
                     </div>
                     
-                    <button onclick="showCloudOptions()" style="background: #6c757d; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer;">返回選項</button>
+                    <!-- 詳細教學按鈕 -->
+                    <div style="text-align: center; margin: 20px 0;">
+                        <button onclick="toggleGitHubTutorial()" id="tutorialToggle" style="background: #17a2b8; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer;">📋 查看詳細設置教學</button>
+                    </div>
+                    
+                    <!-- 詳細教學內容（預設隱藏）-->
+                    <div id="gitHubTutorial" style="display: none;">
+                        <div style="border-top: 2px solid #ddd; padding-top: 20px;">
+                            <h5>📖 詳細設置教學</h5>
+                            
+                            <div style="background: #f0f8f0; padding: 10px; border-radius: 5px; margin: 10px 0;">
+                                <h6>步驟 1：準備 GitHub 帳戶</h6>
+                                <p>如果您還沒有 GitHub 帳戶：</p>
+                                <a href="https://github.com/join" target="_blank" style="background: #333; color: white; padding: 6px 12px; text-decoration: none; border-radius: 3px; font-size: 12px;">註冊 GitHub 帳戶</a>
+                            </div>
+                            
+                            <div style="background: #f0f8f0; padding: 10px; border-radius: 5px; margin: 10px 0;">
+                                <h6>步驟 2：創建訪問令牌</h6>
+                                <p style="font-size: 14px; margin-bottom: 15px;">按照以下圖片步驟操作：</p>
+                                
+                                <!-- 四個步驟的圖片 -->
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                                    <div style="text-align: center;">
+                                        <img src="Create gists token/1.png" alt="步驟1" style="width: 100%; max-width: 200px; border: 1px solid #ddd; border-radius: 3px;">
+                                        <p style="font-size: 11px; margin: 5px 0; color: #666;"><strong>① 進入設定頁面</strong><br>點擊「Generate new token」</p>
+                                    </div>
+                                    <div style="text-align: center;">
+                                        <img src="Create gists token/2.png" alt="步驟2" style="width: 100%; max-width: 200px; border: 1px solid #ddd; border-radius: 3px;">
+                                        <p style="font-size: 11px; margin: 5px 0; color: #666;"><strong>② 選擇令牌類型</strong><br>選擇「classic」版本</p>
+                                    </div>
+                                    <div style="text-align: center;">
+                                        <img src="Create gists token/3.png" alt="步驟3" style="width: 100%; max-width: 200px; border: 1px solid #ddd; border-radius: 3px;">
+                                        <p style="font-size: 11px; margin: 5px 0; color: #666;"><strong>③ 勾選權限</strong><br>只需勾選「gist」</p>
+                                    </div>
+                                    <div style="text-align: center;">
+                                        <img src="Create gists token/4.png" alt="步驟4" style="width: 100%; max-width: 200px; border: 1px solid #ddd; border-radius: 3px;">
+                                        <p style="font-size: 11px; margin: 5px 0; color: #666;"><strong>④ 生成令牌</strong><br>點擊「Generate token」</p>
+                                    </div>
+                                </div>
+                                
+                                <div style="background: #fff3cd; padding: 8px; border-radius: 3px; margin-top: 15px;">
+                                    <p style="font-size: 12px; margin: 0;"><strong>⚠️ 重要：</strong>生成後立即複製令牌，離開頁面後就看不到了！</p>
+                                </div>
+                                
+                                <div style="text-align: center; margin-top: 10px;">
+                                    <a href="https://github.com/settings/tokens" target="_blank" style="background: #007bff; color: white; padding: 8px 15px; text-decoration: none; border-radius: 3px; font-size: 12px;">🔗 前往 GitHub 建立令牌</a>
+                                </div>
+                            </div>
+                            
+                            <div style="background: #f0f8f0; padding: 10px; border-radius: 5px; margin: 10px 0;">
+                                <h6>步驟 3：完成設置</h6>
+                                <p style="font-size: 12px;">將複製的令牌貼到上方輸入框，點擊「開始使用 GitHub 同步」即可完成設置。</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="text-align: center; margin-top: 20px;">
+                        <button onclick="showCloudOptions()" style="background: #6c757d; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer;">← 返回其他同步選項</button>
+                    </div>
                 </div>
             `;
             document.getElementById('cloudOptions').innerHTML = content;
+        }
+
+        // 切換教學顯示
+        function toggleGitHubTutorial() {
+            const tutorial = document.getElementById('gitHubTutorial');
+            const toggleBtn = document.getElementById('tutorialToggle');
+            
+            if (tutorial.style.display === 'none') {
+                tutorial.style.display = 'block';
+                toggleBtn.textContent = '📋 隱藏詳細教學';
+                toggleBtn.style.background = '#6c757d';
+            } else {
+                tutorial.style.display = 'none';
+                toggleBtn.textContent = '📋 查看詳細設置教學';
+                toggleBtn.style.background = '#17a2b8';
+            }
         }
 
         // 手動同步
