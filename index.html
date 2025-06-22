@@ -291,7 +291,7 @@
         </div>
         
         <div class="card">
-            <h2>飲食記錄</h2>
+            <h2>飲食記錄 <span id="dataSource" style="font-size: 14px; color: #666;"></span></h2>
             <div id="historyList"></div>
         </div>
     </div>
@@ -299,6 +299,7 @@
     <script>
         // 雲端同步相關變數
         let cloudSyncEnabled = false;
+        let dataSource = 'local'; // 'github' or 'local'
 
         // 貓糧資料庫
         const foodDatabase = [
@@ -384,9 +385,11 @@
             // 如果 GitHub 沒有數據，則載入本地數據作為後備
             if (mealHistory.length === 0) {
                 loadHistoryFromStorage();
+                dataSource = 'local';
             }
             
             updateChart();
+            updateDataSourceDisplay();
         }
 
         // 填充食物選項
@@ -635,6 +638,9 @@
                 
                 historyList.appendChild(dayElement);
             });
+            
+            // 更新數據來源顯示
+            updateDataSourceDisplay();
         }
 
         // 更新圖表
@@ -792,20 +798,29 @@
         // 刪除餐點
         function deleteMeal(mealIndex) {
             const meal = mealHistory[mealIndex];
-            if (!meal) return;
+            if (!meal) {
+                console.error('找不到要刪除的餐點，索引:', mealIndex);
+                alert('找不到要刪除的記錄，請重新整理頁面');
+                return;
+            }
             
             const confirmDelete = confirm(`確定要刪除 ${meal.date} ${meal.time} 的餐點記錄嗎？\n實際攝取: ${meal.actualCalories.toFixed(1)} kcal`);
             
             if (confirmDelete) {
+                console.log(`刪除餐點，索引: ${mealIndex}, 刪除前總數: ${mealHistory.length}`);
                 mealHistory.splice(mealIndex, 1);
+                console.log(`刪除後總數: ${mealHistory.length}`);
+                
                 saveHistoryToStorage();
-                syncToCloud();
                 
                 // 更新顯示
                 displayHistory();
                 updateChart();
                 
-                showSyncStatus('餐點記錄已刪除', 'success');
+                // 自動同步到 GitHub
+                syncToCloud();
+                
+                showSyncStatus('餐點記錄已刪除並同步到 GitHub', 'success');
             }
         }
         
@@ -1197,6 +1212,25 @@
                 if (navigator.clipboard) {
                     navigator.clipboard.writeText(url);
                 }
+            }
+        }
+
+        // 更新數據來源顯示
+        function updateDataSourceDisplay() {
+            const sourceElement = document.getElementById('dataSource');
+            if (!sourceElement) return;
+            
+            const hasGitHubToken = githubToken && githubGistId;
+            
+            if (dataSource === 'github' && hasGitHubToken) {
+                sourceElement.innerHTML = '(📂 GitHub 雲端數據)';
+                sourceElement.style.color = '#28a745';
+            } else if (hasGitHubToken) {
+                sourceElement.innerHTML = '(💾 本地數據 + GitHub 同步)';
+                sourceElement.style.color = '#17a2b8';
+            } else {
+                sourceElement.innerHTML = '(💾 僅本地數據)';
+                sourceElement.style.color = '#ffc107';
             }
         }
 
@@ -1849,8 +1883,10 @@
                     
                     if (mealHistory.length > 0) {
                         console.log(`成功從 GitHub 載入 ${mealHistory.length} 筆記錄`);
+                        dataSource = 'github';
                         showSyncStatus(`已從 GitHub 載入 ${mealHistory.length} 筆記錄`, 'success');
                         displayHistory();
+                        updateDataSourceDisplay();
                         return;
                     }
                 } catch (error) {
