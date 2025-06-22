@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>貓咪飲食追蹤器</title>
+    <title>貓咪飲食追蹤器 v2.0</title>
     <style>
         * {
             margin: 0;
@@ -380,8 +380,8 @@
             // 綁定事件
             document.getElementById('grams0').addEventListener('input', calculateCalories);
             
-            // 顯示雲端同步選項
-            showCloudOptions();
+            // 立即顯示雲端同步選項，不載入 Google API
+            document.getElementById('cloudOptions').style.display = 'block';
         }
 
         // 填充食物選項
@@ -1190,9 +1190,7 @@
 
         // 顯示雲端選項
         function showCloudOptions() {
-            // loadingAuth 元素已移除
-            // fallbackAuth 元素已移除
-            // googleAuth 元素已移除
+            // 直接顯示雲端同步選項
             document.getElementById('cloudOptions').style.display = 'block';
         }
 
