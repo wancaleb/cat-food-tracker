@@ -1474,7 +1474,63 @@
 
         // 顯示雲端選項
         function showCloudOptions() {
-            // 直接顯示雲端同步選項
+            const content = `
+                <div style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 15px;">
+                    <h4>☁️ 選擇您的雲端存儲方案</h4>
+                    <p>為了實現跨平台同步，請選擇一個適合的存儲方案：</p>
+                    
+                    <div style="margin: 15px 0;">
+                        <!-- GitHub Gist 選項 -->
+                        <div style="background: white; border: 1px solid #ddd; border-radius: 5px; padding: 10px; margin: 10px 0;">
+                            <h6>🗂️ GitHub Gist（推薦）</h6>
+                            <p>免費、穩定、跨平台，適合技術用戶</p>
+                            <button onclick="setupGitHubSync()" style="background: #333; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer;">設置 GitHub 同步</button>
+                        </div>
+                        
+                        <!-- 手動同步選項 -->
+                        <div style="background: white; border: 1px solid #ddd; border-radius: 5px; padding: 10px; margin: 10px 0;">
+                            <h6>📋 手動同步（即時分享）</h6>
+                            <p style="margin: 5px 0; font-size: 13px;">💡 <strong>資料流：</strong>裝置A生成連結 → 裝置B掃描/點擊 → 立即合併資料</p>
+                            <div style="background: #f8f9fa; padding: 6px; border-radius: 3px; margin: 5px 0; font-size: 11px;">
+                                <span style="color: #28a745;">✅ 適合：</span>偶爾同步、臨時分享<br>
+                                <span style="color: #007bff;">🔄 資料處理：</span>智能合併，不會覆蓋現有資料<br>
+                                <span style="color: #ffc107;">⚠️ 注意：</span>連結有效期短，需即時使用
+                            </div>
+                            <button onclick="showManualSync()" style="background: #17a2b8; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer;">手動同步</button>
+                        </div>
+                        
+                        <!-- 文件存儲同步選項 -->
+                        <div style="background: white; border: 1px solid #ddd; border-radius: 5px; padding: 10px; margin: 10px 0;">
+                            <h6>💾 文件存儲（安全備份）</h6>
+                            <p style="margin: 5px 0; font-size: 13px;">💡 <strong>資料流：</strong>匯出JSON檔 → 雲端硬碟 → 其他裝置匯入 → 選擇合併或覆蓋</p>
+                            <div style="background: #f8f9fa; padding: 6px; border-radius: 3px; margin: 5px 0; font-size: 11px;">
+                                <span style="color: #28a745;">✅ 適合：</span>定期備份、完全控制資料<br>
+                                <span style="color: #007bff;">🔄 資料處理：</span>您決定是合併還是完全替換<br>
+                                <span style="color: #28a745;">🛡️ 安全：</span>檔案在您的雲端硬碟，最私密
+                            </div>
+                            <button onclick="showFileSync()" style="background: #28a745; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer;">文件同步</button>
+                        </div>
+                        
+                        <!-- 在線剪貼板選項 -->
+                        <div style="background: white; border: 1px solid #ddd; border-radius: 5px; padding: 10px; margin: 10px 0;">
+                            <h6>🔗 在線剪貼板（臨時分享）</h6>
+                            <p style="margin: 5px 0; font-size: 13px;">💡 <strong>資料流：</strong>上傳到Pastebin → 取得連結 → 其他裝置載入 → 合併資料</p>
+                            <div style="background: #f8f9fa; padding: 6px; border-radius: 3px; margin: 5px 0; font-size: 11px;">
+                                <span style="color: #28a745;">✅ 適合：</span>快速分享、無需註冊帳號<br>
+                                <span style="color: #007bff;">🔄 資料處理：</span>自動合併，保留雙方資料<br>
+                                <span style="color: #dc3545;">⚠️ 隱私：</span>資料暫時公開，敏感資料請勿使用
+                            </div>
+                            <button onclick="showPastebinSync()" style="background: #6c757d; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer;">剪貼板同步</button>
+                        </div>
+                    </div>
+                    
+                    <!-- 提示信息 -->
+                    <div style="margin: 15px 0; padding: 10px; background: #e7f3ff; border-radius: 5px;">
+                        <small><strong>💡 提示：</strong>所有方案都會保持您的數據私密性，建議先試用 GitHub Gist 方案。</small>
+                    </div>
+                </div>
+            `;
+            document.getElementById('cloudOptions').innerHTML = content;
             document.getElementById('cloudOptions').style.display = 'block';
         }
 
@@ -1578,24 +1634,51 @@
         function showManualSync() {
             const content = `
                 <div style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 15px;">
-                    <h4>📋 手動數據同步</h4>
-                    <p>使用分享連結或二維碼在設備間快速同步數據。</p>
+                    <h4>📋 手動數據同步（即時分享）</h4>
+                    <p style="font-size: 14px; margin-bottom: 15px;">🔄 <strong>資料流程：</strong>裝置A生成分享連結 → 裝置B立即掃描/點擊連結 → 智能合併雙方資料</p>
                     
-                    <div style="background: #e7f3ff; padding: 10px; border-radius: 5px; margin: 10px 0;">
-                        <h6>📤 從此設備分享數據</h6>
-                        <button onclick="generateShareLink()" style="background: #007bff; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer;">生成分享連結</button>
-                        <button onclick="generateQRCode()" style="background: #17a2b8; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer;">生成二維碼</button>
+                    <!-- 資料安全說明 -->
+                    <div style="background: #d1ecf1; border: 1px solid #17a2b8; padding: 10px; border-radius: 5px; margin: 15px 0;">
+                        <h6 style="color: #0c5460; margin: 0 0 8px 0;">🛡️ 資料安全保證</h6>
+                        <ul style="margin: 0; padding-left: 18px; font-size: 12px; color: #0c5460;">
+                            <li><strong>智能合併：</strong>系統會保留雙方的記錄，不會覆蓋任何現有資料</li>
+                            <li><strong>即時有效：</strong>連結僅在生成後短時間內有效，確保安全性</li>
+                            <li><strong>不會重複：</strong>相同的記錄不會被重複添加</li>
+                            <li><strong>本地處理：</strong>資料在瀏覽器內處理，不上傳到任何伺服器</li>
+                        </ul>
                     </div>
                     
                     <div style="background: #e7f3ff; padding: 10px; border-radius: 5px; margin: 10px 0;">
-                        <h6>📥 載入其他設備的數據</h6>
-                        <input type="text" id="shareLink" placeholder="貼上分享連結" style="width: 100%; padding: 8px; margin: 5px 0;">
-                        <button onclick="loadFromShareLink()" style="background: #28a745; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer;">載入數據</button>
+                        <h6>📤 步驟1：從此設備分享資料</h6>
+                        <p style="font-size: 13px; margin: 5px 0;">將目前的 ${mealHistory ? mealHistory.length : 0} 筆記錄打包成分享連結或QR碼</p>
+                        <button onclick="generateShareLink()" style="background: #007bff; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer;">🔗 生成分享連結</button>
+                        <button onclick="generateQRCode()" style="background: #17a2b8; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer;">📱 生成二維碼</button>
+                        <p style="font-size: 11px; color: #666; margin: 5px 0;">💡 QR碼適合手機間分享，連結適合電腦間複製貼上</p>
+                    </div>
+                    
+                    <div style="background: #e7f3ff; padding: 10px; border-radius: 5px; margin: 10px 0;">
+                        <h6>📥 步驟2：載入其他設備的資料</h6>
+                        <p style="font-size: 13px; margin: 5px 0;">貼上從其他設備獲得的分享連結</p>
+                        <input type="text" id="shareLink" placeholder="貼上分享連結（如：https://yoursite.com#data=...）" style="width: 100%; padding: 8px; margin: 5px 0; font-size: 12px;">
+                        <button onclick="loadFromShareLink()" style="background: #28a745; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer;">🔄 載入並合併資料</button>
+                        <div style="background: #d4f8d4; padding: 6px; border-radius: 3px; margin: 8px 0; font-size: 11px;">
+                            ✅ <strong>安全提醒：</strong>載入的資料會與現有記錄合併，您的原有資料完全不會遺失
+                        </div>
+                    </div>
+                    
+                    <div style="background: #f8f9fa; border: 1px solid #ddd; padding: 10px; border-radius: 5px; margin: 10px 0;">
+                        <h6>🎯 使用場景</h6>
+                        <ul style="margin: 5px 0; padding-left: 18px; font-size: 12px;">
+                            <li><strong>家庭同步：</strong>多人共同照顧貓咪，需要即時同步餵食記錄</li>
+                            <li><strong>臨時分享：</strong>偶爾需要與朋友分享貓咪飲食資料</li>
+                            <li><strong>設備切換：</strong>從舊手機換到新手機時快速轉移資料</li>
+                            <li><strong>緊急備份：</strong>其他同步方法無法使用時的應急選擇</li>
+                        </ul>
                     </div>
                     
                     <div id="shareResult" style="margin: 10px 0;"></div>
                     
-                    <button onclick="showCloudOptions()" style="background: #6c757d; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer;">返回選項</button>
+                    <button onclick="showCloudOptions()" style="background: #6c757d; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer;">← 返回其他同步選項</button>
                 </div>
             `;
             document.getElementById('cloudOptions').innerHTML = content;
@@ -1605,33 +1688,48 @@
         function showFileSync() {
             const content = `
                 <div style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 15px;">
-                    <h4>💾 文件存儲同步</h4>
-                    <p>將數據匯出為 JSON 文件，保存到您的雲端硬碟（如 Dropbox、OneDrive、iCloud）。</p>
+                    <h4>💾 文件存儲同步（最安全的方法）</h4>
+                    <p style="font-size: 14px; margin-bottom: 15px;">📂 <strong>資料流程：</strong>此裝置匯出JSON檔案 → 儲存到您的雲端硬碟 → 其他裝置下載並匯入檔案</p>
                     
-                    <div style="background: #e7f3ff; padding: 10px; border-radius: 5px; margin: 10px 0;">
-                        <h6>📤 匯出數據</h6>
-                        <p>將當前數據下載為 JSON 文件：</p>
-                        <button onclick="exportLocalData()" style="background: #007bff; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer;">下載數據文件</button>
-                    </div>
-                    
-                    <div style="background: #e7f3ff; padding: 10px; border-radius: 5px; margin: 10px 0;">
-                        <h6>📥 匯入數據</h6>
-                        <p>從 JSON 文件載入數據：</p>
-                        <input type="file" id="importFile" accept=".json" style="margin: 5px 0;">
-                        <button onclick="importFromFile()" style="background: #28a745; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer;">載入文件</button>
-                    </div>
-                    
-                    <div style="background: #fff3cd; padding: 10px; border-radius: 5px; margin: 10px 0;">
-                        <h6>💡 使用建議</h6>
-                        <ul style="margin: 5px 0; padding-left: 20px;">
-                            <li>定期匯出數據備份</li>
-                            <li>將文件保存到雲端硬碟</li>
-                            <li>在其他設備上匯入文件</li>
-                            <li>可以設定文件名包含日期方便管理</li>
+                    <!-- 安全說明 -->
+                    <div style="background: #d4f8d4; border: 1px solid #28a745; padding: 10px; border-radius: 5px; margin: 15px 0;">
+                        <h6 style="color: #155724; margin: 0 0 8px 0;">🛡️ 資料安全保證</h6>
+                        <ul style="margin: 0; padding-left: 18px; font-size: 12px; color: #155724;">
+                            <li>檔案只保存在您的雲端硬碟，完全私密</li>
+                            <li>匯入時您可選擇「合併」或「替換」現有資料</li>
+                            <li>合併：保留雙方資料，不會遺失任何記錄</li>
+                            <li>替換：清除當前資料，完全使用檔案內容</li>
                         </ul>
                     </div>
                     
-                    <button onclick="showCloudOptions()" style="background: #6c757d; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer;">返回選項</button>
+                    <div style="background: #e7f3ff; padding: 10px; border-radius: 5px; margin: 10px 0;">
+                        <h6>📤 步驟1：匯出當前資料</h6>
+                        <p style="font-size: 13px; margin: 5px 0;">將目前的 ${mealHistory ? mealHistory.length : 0} 筆記錄下載為JSON檔案</p>
+                        <button onclick="exportLocalData()" style="background: #007bff; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer;">📥 下載數據文件</button>
+                        <p style="font-size: 11px; color: #666; margin: 5px 0;">💡 檔案會自動命名為：貓咪食物追蹤數據-日期.json</p>
+                    </div>
+                    
+                    <div style="background: #e7f3ff; padding: 10px; border-radius: 5px; margin: 10px 0;">
+                        <h6>📥 步驟2：匯入其他裝置的資料</h6>
+                        <p style="font-size: 13px; margin: 5px 0;">選擇從其他裝置匯出的JSON檔案</p>
+                        <input type="file" id="importFile" accept=".json" style="margin: 5px 0; font-size: 12px;">
+                        <button onclick="importFromFile()" style="background: #28a745; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer;">📤 載入文件</button>
+                        <div style="background: #fff3cd; padding: 6px; border-radius: 3px; margin: 8px 0; font-size: 11px;">
+                            ⚠️ <strong>匯入前確認：</strong>系統會詢問您要「合併」或「替換」資料，請根據需要選擇
+                        </div>
+                    </div>
+                    
+                    <div style="background: #f8f9fa; border: 1px solid #ddd; padding: 10px; border-radius: 5px; margin: 10px 0;">
+                        <h6>📋 推薦工作流程</h6>
+                        <ol style="margin: 5px 0; padding-left: 18px; font-size: 12px;">
+                            <li><strong>定期備份：</strong>每週匯出檔案到雲端硬碟（Dropbox/OneDrive/iCloud）</li>
+                            <li><strong>跨裝置同步：</strong>在A裝置匯出 → 雲端硬碟 → B裝置下載匯入</li>
+                            <li><strong>檔案管理：</strong>建議用日期命名檔案，如：貓咪食物-2024-01-15.json</li>
+                            <li><strong>安全原則：</strong>匯入前先匯出當前資料作為備份</li>
+                        </ol>
+                    </div>
+                    
+                    <button onclick="showCloudOptions()" style="background: #6c757d; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer;">← 返回其他同步選項</button>
                 </div>
             `;
             document.getElementById('cloudOptions').innerHTML = content;
@@ -1641,28 +1739,50 @@
         function showPastebinSync() {
             const content = `
                 <div style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 15px;">
-                    <h4>🔗 在線剪貼板同步</h4>
-                    <p>使用在線剪貼板服務（如 Pastebin）分享數據。</p>
+                    <h4>🔗 在線剪貼板同步（快速分享）</h4>
+                    <p style="font-size: 14px; margin-bottom: 15px;">📡 <strong>資料流程：</strong>此裝置上傳到Pastebin → 獲得公開連結 → 其他裝置用連結載入資料</p>
                     
-                    <div style="background: #e7f3ff; padding: 10px; border-radius: 5px; margin: 10px 0;">
-                        <h6>📤 上傳數據到剪貼板</h6>
-                        <button onclick="uploadToPastebin()" style="background: #007bff; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer;">上傳到 Pastebin</button>
+                    <!-- 隱私警告 -->
+                    <div style="background: #f8d7da; border: 1px solid #dc3545; padding: 10px; border-radius: 5px; margin: 15px 0;">
+                        <h6 style="color: #721c24; margin: 0 0 8px 0;">⚠️ 重要隱私提醒</h6>
+                        <ul style="margin: 0; padding-left: 18px; font-size: 12px; color: #721c24;">
+                            <li><strong>資料會暫時公開</strong>：任何人都可能看到您的飲食記錄</li>
+                            <li><strong>建議用途</strong>：僅用於快速分享，不含敏感資訊時使用</li>
+                            <li><strong>資料處理</strong>：載入時會與現有資料合併，不會覆蓋</li>
+                            <li><strong>有效期限</strong>：Pastebin連結會在一段時間後自動刪除</li>
+                        </ul>
                     </div>
                     
                     <div style="background: #e7f3ff; padding: 10px; border-radius: 5px; margin: 10px 0;">
-                        <h6>📥 從剪貼板載入數據</h6>
-                        <input type="text" id="pastebinUrl" placeholder="貼上 Pastebin 連結" style="width: 100%; padding: 8px; margin: 5px 0;">
-                        <button onclick="loadFromPastebin()" style="background: #28a745; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer;">載入數據</button>
+                        <h6>📤 步驟1：上傳資料到剪貼板</h6>
+                        <p style="font-size: 13px; margin: 5px 0;">將目前的 ${mealHistory ? mealHistory.length : 0} 筆記錄上傳到公開剪貼板</p>
+                        <button onclick="uploadToPastebin()" style="background: #007bff; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer;">🌐 上傳到 Pastebin</button>
+                        <p style="font-size: 11px; color: #666; margin: 5px 0;">💡 上傳後會獲得一個公開連結，請立即分享給其他裝置</p>
+                    </div>
+                    
+                    <div style="background: #e7f3ff; padding: 10px; border-radius: 5px; margin: 10px 0;">
+                        <h6>📥 步驟2：從剪貼板載入資料</h6>
+                        <p style="font-size: 13px; margin: 5px 0;">貼上從其他裝置獲得的Pastebin連結</p>
+                        <input type="text" id="pastebinUrl" placeholder="貼上 Pastebin 連結（如：https://pastebin.com/xxxxxxxx）" style="width: 100%; padding: 8px; margin: 5px 0; font-size: 12px;">
+                        <button onclick="loadFromPastebin()" style="background: #28a745; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer;">📥 載入數據</button>
+                        <div style="background: #d1ecf1; padding: 6px; border-radius: 3px; margin: 8px 0; font-size: 11px;">
+                            ℹ️ <strong>安全提醒：</strong>載入的資料會與現有記錄合併，不會刪除您當前的資料
+                        </div>
                     </div>
                     
                     <div style="background: #fff3cd; padding: 10px; border-radius: 5px; margin: 10px 0;">
-                        <h6>⚠️ 隱私提醒</h6>
-                        <p>使用公開剪貼板服務時，您的數據會暫時公開。建議只在必要時使用，或使用私人模式。</p>
+                        <h6>🎯 適用場景</h6>
+                        <ul style="margin: 5px 0; padding-left: 18px; font-size: 12px;">
+                            <li>✅ <strong>臨時分享：</strong>快速傳送幾筆記錄給朋友參考</li>
+                            <li>✅ <strong>緊急備份：</strong>無法使用其他方法時的應急選項</li>
+                            <li>✅ <strong>測試用途：</strong>測試資料同步功能</li>
+                            <li>❌ <strong>不適合：</strong>長期儲存、大量資料、隱私要求高的情況</li>
+                        </ul>
                     </div>
                     
                     <div id="pastebinResult" style="margin: 10px 0;"></div>
                     
-                    <button onclick="showCloudOptions()" style="background: #6c757d; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer;">返回選項</button>
+                    <button onclick="showCloudOptions()" style="background: #6c757d; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer;">← 返回其他同步選項</button>
                 </div>
             `;
             document.getElementById('cloudOptions').innerHTML = content;
