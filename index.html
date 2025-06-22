@@ -374,33 +374,47 @@
         }
         
         .edit-btn {
-            background: #f39c12;
+            background: linear-gradient(135deg, #667eea 0%, #5a67d8 100%);
             color: white;
             border: none;
-            padding: 5px 10px;
-            border-radius: 4px;
+            padding: 8px 12px;
+            border-radius: var(--border-radius-sm);
             font-size: 12px;
             cursor: pointer;
-            margin-left: 10px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            box-shadow: var(--shadow-sm);
         }
         
         .edit-btn:hover {
-            background: #e67e22;
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+            background: linear-gradient(135deg, #5a67d8 0%, #4c51bf 100%);
         }
         
         .delete-btn {
-            background: #e74c3c;
+            background: linear-gradient(135deg, var(--danger-color) 0%, #e53e3e 100%);
             color: white;
             border: none;
-            padding: 5px 10px;
-            border-radius: 4px;
+            padding: 8px 12px;
+            border-radius: var(--border-radius-sm);
             font-size: 12px;
             cursor: pointer;
-            margin-left: 5px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            box-shadow: var(--shadow-sm);
         }
         
         .delete-btn:hover {
-            background: #c0392b;
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+            background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);
         }
         
         .edit-form {
@@ -424,6 +438,14 @@
             .food-info {
                 flex-direction: column;
                 align-items: flex-start;
+            }
+            
+            /* 移動端餐點記錄按鈕調整 */
+            .meal-detail .edit-btn,
+            .meal-detail .delete-btn {
+                padding: 6px 10px;
+                font-size: 11px;
+                min-width: 60px;
             }
         }
         
@@ -1007,11 +1029,15 @@
                     const foodsText = meal.foods.map(f => `${f.name} ${f.feedGrams}g`).join(', ');
                     mealsHtml += `
                         <div class="meal-detail" id="meal-${globalMealIndex}">
-                            ${meal.time} - 實際攝取: ${meal.actualCalories.toFixed(1)} kcal (餵${meal.totalFeedGrams.toFixed(1)}g，吃${meal.actualEatenGrams.toFixed(1)}g)
-                            <button class="edit-btn" onclick="editMeal(${globalMealIndex})">編輯</button>
-                            <button class="delete-btn" onclick="deleteMeal(${globalMealIndex})">刪除</button>
-                            <br>
-                            <small>${foodsText}</small>
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+                                <button class="edit-btn" onclick="editMeal(${globalMealIndex})">✏️ 編輯</button>
+                                <span style="flex: 1; text-align: center; padding: 0 10px;">
+                                    ${meal.time} - 實際攝取: ${meal.actualCalories.toFixed(1)} kcal<br>
+                                    <small>(餵${meal.totalFeedGrams.toFixed(1)}g，吃${meal.actualEatenGrams.toFixed(1)}g)</small>
+                                </span>
+                                <button class="delete-btn" onclick="deleteMeal(${globalMealIndex})">🗑️ 刪除</button>
+                            </div>
+                            <small style="display: block; padding: 5px 0; color: #666;">${foodsText}</small>
                         </div>
                     `;
                 });
