@@ -234,8 +234,16 @@
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
-    <script src="https://apis.google.com/js/api.js"></script>
-    <script src="https://accounts.google.com/gsi/client"></script>
+    <script src="https://apis.google.com/js/api.js" onerror="handleScriptError('gapi')"></script>
+    <script src="https://accounts.google.com/gsi/client" onerror="handleScriptError('gsi')"></script>
+    <script>
+        // 腳本載入錯誤處理
+        let scriptErrors = [];
+        function handleScriptError(scriptType) {
+            scriptErrors.push(scriptType);
+            console.error(`${scriptType} 腳本載入失敗`);
+        }
+    </script>
 </head>
 <body>
     <div class="container">
@@ -280,7 +288,8 @@
                     </ul>
                     <div style="margin: 15px 0;">
                         <button onclick="location.reload()" style="background: #3498db; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; margin-right: 10px;">重新載入頁面</button>
-                        <button onclick="testGoogleAPI()" style="background: #e67e22; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer;">測試 Google API</button>
+                        <button onclick="testGoogleAPI()" style="background: #e67e22; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; margin-right: 10px;">測試 Google API</button>
+                        <button onclick="enableOfflineMode()" style="background: #27ae60; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer;">僅使用本地模式</button>
                     </div>
                     <div id="testResults" style="margin-top: 10px; font-size: 12px; color: #666;"></div>
                 </div>
@@ -1533,6 +1542,29 @@
             console.log('=== 調試信息結束 ===');
         }
 
+        // 啟用離線模式
+        function enableOfflineMode() {
+            document.getElementById('loadingAuth').style.display = 'none';
+            document.getElementById('fallbackAuth').style.display = 'none';
+            document.getElementById('googleAuth').innerHTML = `
+                <div style="background: #e8f5e8; border: 1px solid #d4edda; border-radius: 8px; padding: 15px;">
+                    <h4>📱 本地模式已啟用</h4>
+                    <p>您的數據將只保存在此瀏覽器的本地存儲中。</p>
+                    <p><strong>注意：</strong></p>
+                    <ul>
+                        <li>數據不會同步到雲端</li>
+                        <li>清除瀏覽器數據會導致資料遺失</li>
+                        <li>無法在多裝置間同步</li>
+                    </ul>
+                    <p><small>您可以隨時重新整理頁面來重試 Google Drive 功能。</small></p>
+                </div>
+            `;
+            document.getElementById('googleAuth').style.display = 'block';
+            
+            showSyncStatus('已啟用本地模式 - 數據將僅保存在此瀏覽器中', 'success');
+            console.log('離線模式已啟用');
+        }
+
         // Google API 連線測試
         async function testGoogleAPI() {
             const resultsDiv = document.getElementById('testResults');
@@ -1554,6 +1586,7 @@
                 tests.push(`✅ Google Identity Services 可訪問 (${response.status})`);
             } catch (error) {
                 tests.push(`❌ Google Identity Services 無法訪問: ${error.message}`);
+                tests.push(`💡 建議: 這通常是廣告攔截器或網路過濾器造成的`);
             }
             
             // 測試 3: 檢查變數
@@ -1564,14 +1597,41 @@
             tests.push(`當前位置: ${window.location.href}`);
             tests.push(`用戶代理: ${navigator.userAgent.substring(0, 50)}...`);
             
+            // 判斷主要問題並提供解決方案
+            let mainIssue = '';
+            let solutions = [];
+            
+            if (tests.some(test => test.includes('Google Identity Services 無法訪問'))) {
+                mainIssue = '🔒 Google Identity Services 被阻擋';
+                solutions = [
+                    '暫時關閉廣告攔截器（如 uBlock Origin、AdBlock）',
+                    '檢查瀏覽器是否阻擋第三方腳本',
+                    '關閉 VPN 或代理伺服器',
+                    '使用無痕模式重新嘗試',
+                    '或點擊上方「僅使用本地模式」繼續使用'
+                ];
+            } else if (typeof gapi === 'undefined') {
+                mainIssue = '📡 Google API 腳本載入失敗';
+                solutions = [
+                    '檢查網路連線',
+                    '重新載入頁面',
+                    '清除瀏覽器緩存'
+                ];
+            }
+
             resultsDiv.innerHTML = `
                 <h5>🔍 測試結果：</h5>
                 <ul style="margin: 0; padding-left: 20px; font-size: 11px;">
                     ${tests.map(test => `<li>${test}</li>`).join('')}
                 </ul>
-                <p style="margin: 10px 0 0 0; font-size: 11px;">
-                    <strong>建議：</strong>如果 API 腳本無法訪問，請嘗試關閉廣告攔截器或 VPN。
-                </p>
+                ${mainIssue ? `
+                    <div style="margin: 10px 0; padding: 8px; background: #fff3cd; border-radius: 4px;">
+                        <strong style="font-size: 12px;">${mainIssue}</strong>
+                        <ol style="margin: 5px 0 0 0; padding-left: 18px; font-size: 11px;">
+                            ${solutions.map(solution => `<li>${solution}</li>`).join('')}
+                        </ol>
+                    </div>
+                ` : ''}
             `;
         }
 
