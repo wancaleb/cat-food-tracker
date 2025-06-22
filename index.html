@@ -287,10 +287,11 @@
                         <li>VPN 或代理伺服器影響</li>
                     </ul>
                     <div style="margin: 15px 0;">
-                        <button onclick="location.reload()" style="background: #3498db; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; margin-right: 5px;">重新載入頁面</button>
-                        <button onclick="testGoogleAPI()" style="background: #e67e22; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; margin-right: 5px;">詳細測試</button>
-                        <button onclick="tryIncognitoMode()" style="background: #9b59b6; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; margin-right: 5px;">無痕模式</button>
-                        <button onclick="enableOfflineMode()" style="background: #27ae60; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer;">本地模式</button>
+                        <button onclick="location.reload()" style="background: #3498db; color: white; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer; margin: 2px; font-size: 12px;">重新載入</button>
+                        <button onclick="testGoogleAPI()" style="background: #e67e22; color: white; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer; margin: 2px; font-size: 12px;">詳細測試</button>
+                        <button onclick="tryIncognitoMode()" style="background: #9b59b6; color: white; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer; margin: 2px; font-size: 12px;">無痕模式</button>
+                        <button onclick="showFixGuide()" style="background: #f39c12; color: white; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer; margin: 2px; font-size: 12px;">修復指南</button>
+                        <button onclick="enableOfflineMode()" style="background: #27ae60; color: white; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer; margin: 2px; font-size: 12px;">本地模式</button>
                     </div>
                     <div id="testResults" style="margin-top: 10px; font-size: 12px; color: #666;"></div>
                 </div>
@@ -1656,6 +1657,22 @@
                     solutions.push('檢查 Chrome 擴展，暫時停用安全相關擴展');
                 }
                 
+                // Chrome 專用建議
+                if (navigator.userAgent.includes('Chrome')) {
+                    solutions.unshift('🌐 Chrome 專用解決方案：');
+                    solutions.unshift('1. 設定 → 隱私權和安全性 → 網站設定 → JavaScript → 允許');
+                    solutions.unshift('2. 設定 → 隱私權和安全性 → 網站設定 → Cookie → 允許第三方 Cookie');
+                    solutions.unshift('3. 設定 → 隱私權和安全性 → 安全瀏覽 → 選擇「標準保護」');
+                    solutions.unshift('4. 檢查是否啟用了「增強型保護」→ 改為「標準保護」');
+                    solutions.unshift('5. 網址列 → 點擊鎖頭圖示 → Cookie → 允許此網站的 Cookie');
+                    solutions.unshift('━━━━━━━━━━━━━━━━━━━━━━━━━');
+                } else if (navigator.userAgent.includes('Mozilla') && navigator.userAgent.includes('Firefox')) {
+                    solutions.unshift('🦊 Firefox 設定：');
+                    solutions.unshift('1. 網址列輸入 about:config → 搜尋 privacy.resistFingerprinting → 設為 false');
+                    solutions.unshift('2. 設定 → 隱私權與安全 → 增強型追蹤保護 → 選擇「標準」');
+                    solutions.unshift('3. 設定 → 隱私權與安全 → Cookie → 選擇「標準」');
+                }
+                
                 // 通用解決方案
                 solutions.push('檢查瀏覽器隱私權設定，允許第三方腳本');
                 solutions.push('嘗試無痕/私人瀏覽模式');
@@ -1690,6 +1707,37 @@
             `;
         }
 
+        // 顯示修復指南
+        function showFixGuide() {
+            const testResults = document.getElementById('testResults');
+            testResults.innerHTML = `
+                <div style="background: #e8f5e8; border: 1px solid #d4edda; border-radius: 8px; padding: 15px; margin: 10px 0;">
+                    <h5>🔧 Chrome 專用修復指南</h5>
+                    <p><strong>最常見原因：Chrome 的安全瀏覽設定過於嚴格</strong></p>
+                    
+                    <h6>🎯 立即嘗試：</h6>
+                    <ol style="margin: 10px 0; padding-left: 20px; font-size: 12px;">
+                        <li><strong>檢查網址列鎖頭</strong>：點擊網址列左側的鎖頭圖示 → Cookie → 「允許」</li>
+                        <li><strong>檢查安全瀏覽</strong>：Chrome 設定 → 隱私權和安全性 → 安全瀏覽 → 選擇「標準保護」</li>
+                        <li><strong>允許第三方 Cookie</strong>：設定 → 隱私權和安全性 → 網站設定 → Cookie → 允許第三方 Cookie</li>
+                        <li><strong>無痕模式測試</strong>：Ctrl+Shift+N 開啟無痕視窗測試</li>
+                    </ol>
+                    
+                    <h6>🔍 其他可能原因：</h6>
+                    <ul style="margin: 10px 0; padding-left: 20px; font-size: 12px;">
+                        <li>企業或學校網路阻擋 OAuth 服務</li>
+                        <li>防毒軟體或網路安全軟體干擾</li>
+                        <li>ISP 或 DNS 過濾服務</li>
+                        <li>Chrome 擴展程式衝突</li>
+                    </ul>
+                    
+                    <div style="background: #fff3cd; padding: 10px; border-radius: 5px; margin: 10px 0;">
+                        <strong>💡 快速測試：</strong>如果上述方法都不行，請點擊「本地模式」直接使用應用！
+                    </div>
+                </div>
+            `;
+        }
+
         // 嘗試無痕模式
         function tryIncognitoMode() {
             const url = window.location.href;
@@ -1715,6 +1763,7 @@
         window.debugGoogleAPI = debugGoogleAPI;
         window.testGoogleAPI = testGoogleAPI;
         window.tryIncognitoMode = tryIncognitoMode;
+        window.showFixGuide = showFixGuide;
 
         // 頁面載入時初始化
         window.addEventListener('load', init);
