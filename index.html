@@ -210,6 +210,14 @@
         .retry-button:hover {
             background: #2980b9;
         }
+        
+        .search-result-item:hover {
+            background-color: #f8f9fa !important;
+        }
+        
+        .meat-tag:hover {
+            opacity: 0.8;
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
 </head>
@@ -261,6 +269,48 @@
         
         <div class="card">
             <h2>新增餐點記錄</h2>
+            
+            <!-- 智能搜索區 -->
+            <div style="background: #f8f9fa; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+                <h3 style="margin: 0 0 15px 0; font-size: 16px;">🔍 快速查找貓食</h3>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+                    <div>
+                        <label style="font-size: 12px; color: #666;">品牌篩選</label>
+                        <select id="brandFilter" onchange="filterFoods()" style="margin-bottom: 5px;">
+                            <option value="">所有品牌</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size: 12px; color: #666;">分類篩選</label>
+                        <select id="categoryFilter" onchange="filterFoods()" style="margin-bottom: 5px;">
+                            <option value="">所有分類</option>
+                            <option value="主食罐">主食罐</option>
+                            <option value="副食罐">副食罐</option>
+                            <option value="乾糧">乾糧</option>
+                            <option value="主食餐包">主食餐包</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 15px;">
+                    <label style="font-size: 12px; color: #666;">肉類篩選</label>
+                    <div id="meatFilters" style="display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px;">
+                        <!-- 動態生成肉類標籤 -->
+                    </div>
+                </div>
+                
+                <div>
+                    <label style="font-size: 12px; color: #666;">關鍵字搜索</label>
+                    <input type="text" id="searchInput" placeholder="輸入品名、品牌或肉類..." 
+                           onkeyup="filterFoods()" style="margin-bottom: 5px;">
+                </div>
+                
+                <div id="searchResults" style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd; border-radius: 5px; background: white;">
+                    <!-- 搜索結果會顯示在這裡 -->
+                </div>
+            </div>
+
             <div id="foodSelectors">
                 <div class="food-selector">
                     <select id="foodSelect0">
@@ -303,61 +353,61 @@
 
         // 貓糧資料庫
         const foodDatabase = [
-            {name: "catdives 貓爾地夫 全齡貓營養升級 魩仔魚+板腱牛+雞胸肉", calories: 100.2},
-            {name: "catdives 貓爾地夫 全齡貓營養升級 魩仔魚+鮪魚+雞胸肉", calories: 97.9},
-            {name: "catdives 貓爾地夫 經典回味 嚴選羊雞胸肉", calories: 102.8},
-            {name: "catdives 貓爾地夫 經典回味 板腱牛雞胸肉", calories: 107.9},
-            {name: "catdives 貓爾地夫 經典回味 雞胸肉", calories: 100.3},
-            {name: "catdives 貓爾地夫 經典回味 鮪魚雞胸肉", calories: 97.3},
-            {name: "catdives 貓爾地夫 頂級享受 嚴選鹿", calories: 84.7},
-            {name: "catdives 貓爾地夫 頂級享受 菲力牛", calories: 95.3},
-            {name: "Dog Cat Star 汪喵星球 冷凍乾燥生食-櫻桃鴨", calories: 480},
-            {name: "Dr. Wish 雞肉+鮪魚+牛磺酸", calories: 39},
-            {name: "Dr. Wish 鮪魚+果寡糖", calories: 34},
-            {name: "Dr. Wish 鮪魚+維他命A", calories: 34},
-            {name: "Dr. Wish 鮪魚+雞肉+維他命B群", calories: 32},
-            {name: "K9 Natural 無穀牛", calories: 112.3},
-            {name: "K9 Natural 無穀牛+鱈魚", calories: 94.5},
-            {name: "K9 Natural 無穀羊", calories: 121.1},
-            {name: "K9 Natural 無穀羊+鮭魚", calories: 106},
-            {name: "K9 Natural 無穀雞", calories: 101.3},
-            {name: "K9 Natural 無穀雞+鹿", calories: 86.2},
-            {name: "Lady Flavor 好味小姐 1+1 幼母貓 厚奶燉雞", calories: 127.5},
-            {name: "Lady Flavor 好味小姐 1+1 幼母貓 厚奶虱目魚", calories: 127.5},
-            {name: "Lady Flavor 好味小姐 1+1 幼母貓 厚奶鱸魚", calories: 126.5},
-            {name: "Lady Flavor 好味小姐 1+1滴雞精-原野牛腿", calories: 124.2},
-            {name: "Lady Flavor 好味小姐 1+1滴雞精-白蝦干貝", calories: 103.7},
-            {name: "Lady Flavor 好味小姐 1+1滴雞精-肥美鯖魚", calories: 114.4},
-            {name: "Lady Flavor 好味小姐 1+1滴雞精-野味火雞", calories: 118.1},
-            {name: "Lady Flavor 好味小姐 1+1滴雞精-香嫩鴨胸", calories: 117.3},
-            {name: "Lady Flavor 好味小姐 1+1滴雞精-鮮香鰹魚", calories: 120.6},
-            {name: "Lady Flavor 好味小姐 1+1益生菌 四種魚｜白肉", calories: 123.2},
-            {name: "Lady Flavor 好味小姐 1+1益生菌 四種魚｜紅肉", calories: 117.8},
-            {name: "Lady Flavor 好味小姐 1+1益生菌 綜合海陸", calories: 117.8},
-            {name: "Lady Flavor 好味小姐 1+1益生菌 綜合蝦貝", calories: 116.3},
-            {name: "Lady Flavor 好味小姐 1+1益生菌 綜合野味", calories: 117.8},
-            {name: "Lady Flavor 好味小姐 1+1益生菌 雞肉莓果", calories: 115.1},
-            {name: "Lady Flavor 好味小姐 1+1貓鮮食 慢燉鮮魚", calories: 112.1},
-            {name: "Lady Flavor 好味小姐 1+1貓鮮食 濃湯牛腿", calories: 112.1},
-            {name: "Lady Flavor 好味小姐 1+1貓鮮食 白醬嫩雞", calories: 100.1},
-            {name: "LitoMON 怪獸部落 98%鮮肉-雞肉", calories: 415},
-            {name: "MAC's 馬克 幼貓-火雞肉+兔肉", calories: 98},
-            {name: "MAC's 馬克 火雞肉+火雞心", calories: 89},
-            {name: "MAC's 馬克 羊肉", calories: 90},
-            {name: "MAC's 馬克 羊肉+火雞肉", calories: 98},
-            {name: "MAC's 馬克 雞肉+雞心", calories: 111},
-            {name: "MAC's 馬克 鮭魚+雞肉", calories: 98},
-            {name: "MAC's 馬克 鴨肉+火雞肉+雞肉", calories: 101},
-            {name: "Meow Servant 喵皇奴 純雞肉", calories: 114},
-            {name: "Meow Servant 喵皇奴 雞肉+牛肉", calories: 120},
-            {name: "Meow Servant 喵皇奴 鮭魚+雞肉", calories: 121},
-            {name: "Meow Servant 喵皇奴 鵪鶉+雞肉", calories: 115},
-            {name: "Orijen 歐睿健 幼貓鮮雞", calories: 412},
-            {name: "ROYAL CANIN 皇家 K36 幼貓專用", calories: 370},
-            {name: "ROYAL CANIN 皇家 LP34 泌尿道配方乾糧", calories: 387.2},
-            {name: "ROYAL CANIN 皇家 S33W 腸胃保健", calories: 78.8},
-            {name: "ROYAL CANIN 皇家 幼貓", calories: 80.6},
-            {name: "ZIWIPeak 巔峰 雞肉", calories: 550}
+            {name: "catdives 貓爾地夫 全齡貓營養升級 魩仔魚+板腱牛+雞胸肉", calories: 100.2, category: "主食罐", brand: "catdives 貓爾地夫", meat: ["牛肉","貝類","雞肉","魩仔魚"], texture: "乾糧", origin: "台灣"},
+            {name: "catdives 貓爾地夫 全齡貓營養升級 魩仔魚+鮪魚+雞胸肉", calories: 97.9, category: "主食罐", brand: "catdives 貓爾地夫", meat: ["貝類","雞肉","魩仔魚","鮪魚"], texture: "乾糧", origin: "台灣"},
+            {name: "catdives 貓爾地夫 經典回味 嚴選羊雞胸肉", calories: 102.8, category: "主食罐", brand: "catdives 貓爾地夫", meat: ["羊肉","雞肉"], texture: "肉泥", origin: "台灣"},
+            {name: "catdives 貓爾地夫 經典回味 板腱牛雞胸肉", calories: 107.9, category: "主食罐", brand: "catdives 貓爾地夫", meat: ["牛肉","貝類","雞肉"], texture: "肉泥", origin: "台灣"},
+            {name: "catdives 貓爾地夫 經典回味 雞胸肉", calories: 100.3, category: "主食罐", brand: "catdives 貓爾地夫", meat: ["雞肉"], texture: "肉泥", origin: "台灣"},
+            {name: "catdives 貓爾地夫 經典回味 鮪魚雞胸肉", calories: 97.3, category: "主食罐", brand: "catdives 貓爾地夫", meat: ["雞肉","鮪魚"], texture: "肉泥", origin: "台灣"},
+            {name: "catdives 貓爾地夫 頂級享受 嚴選鹿", calories: 84.7, category: "主食罐", brand: "catdives 貓爾地夫", meat: ["鹿"], texture: "肉泥", origin: "台灣"},
+            {name: "catdives 貓爾地夫 頂級享受 菲力牛", calories: 95.3, category: "主食罐", brand: "catdives 貓爾地夫", meat: ["牛肉"], texture: "肉泥", origin: "台灣"},
+            {name: "Dog Cat Star 汪喵星球 冷凍乾燥生食-櫻桃鴨", calories: 480, category: "乾糧", brand: "Dog Cat Star 汪喵星球", meat: ["雞肉","鴨肉"], texture: "乾糧", origin: "台灣"},
+            {name: "Dr. Wish 雞肉+鮪魚+牛磺酸", calories: 39, category: "副食罐", brand: "Dr. Wish", meat: ["雞肉","鮪魚"], texture: "肉泥", origin: "台灣"},
+            {name: "Dr. Wish 鮪魚+果寡糖", calories: 34, category: "副食罐", brand: "Dr. Wish", meat: ["鮪魚"], texture: "肉泥", origin: "台灣"},
+            {name: "Dr. Wish 鮪魚+維他命A", calories: 34, category: "副食罐", brand: "Dr. Wish", meat: ["鮪魚"], texture: "肉泥", origin: "台灣"},
+            {name: "Dr. Wish 鮪魚+雞肉+維他命B群", calories: 32, category: "副食罐", brand: "Dr. Wish", meat: ["雞肉","鮪魚"], texture: "肉泥", origin: "台灣"},
+            {name: "K9 Natural 無穀牛", calories: 112.3, category: "主食罐", brand: "K9 Natural", meat: ["牛肉"], texture: "肉泥", origin: "紐西蘭"},
+            {name: "K9 Natural 無穀牛+鱈魚", calories: 94.5, category: "主食罐", brand: "K9 Natural", meat: ["牛肉","鱈魚"], texture: "肉泥", origin: "紐西蘭"},
+            {name: "K9 Natural 無穀羊", calories: 121.1, category: "主食罐", brand: "K9 Natural", meat: ["羊肉"], texture: "肉泥", origin: "紐西蘭"},
+            {name: "K9 Natural 無穀羊+鮭魚", calories: 106, category: "主食罐", brand: "K9 Natural", meat: ["羊肉","鮭魚"], texture: "肉泥", origin: "紐西蘭"},
+            {name: "K9 Natural 無穀雞", calories: 101.3, category: "主食罐", brand: "K9 Natural", meat: ["雞肉"], texture: "肉泥", origin: "紐西蘭"},
+            {name: "K9 Natural 無穀雞+鹿", calories: 86.2, category: "主食罐", brand: "K9 Natural", meat: ["雞肉","鹿"], texture: "肉泥", origin: "紐西蘭"},
+            {name: "Lady Flavor 好味小姐 1+1 幼母貓 厚奶燉雞", calories: 127.5, category: "主食罐", brand: "Lady Flavor 好味小姐", meat: ["雞肉"], texture: "肉泥", origin: "台灣"},
+            {name: "Lady Flavor 好味小姐 1+1 幼母貓 厚奶虱目魚", calories: 127.5, category: "主食罐", brand: "Lady Flavor 好味小姐", meat: ["虱目魚","雞肉"], texture: "肉泥", origin: "台灣"},
+            {name: "Lady Flavor 好味小姐 1+1 幼母貓 厚奶鱸魚", calories: 126.5, category: "主食罐", brand: "Lady Flavor 好味小姐", meat: ["雞肉","鱸魚"], texture: "肉泥", origin: "台灣"},
+            {name: "Lady Flavor 好味小姐 1+1滴雞精-原野牛腿", calories: 124.2, category: "主食罐", brand: "Lady Flavor 好味小姐", meat: ["牛肉","雞肉"], texture: "肉泥", origin: "台灣"},
+            {name: "Lady Flavor 好味小姐 1+1滴雞精-白蝦干貝", calories: 103.7, category: "主食罐", brand: "Lady Flavor 好味小姐", meat: ["貝類","雞肉","鮮蝦","鰹魚"], texture: "肉泥", origin: "台灣"},
+            {name: "Lady Flavor 好味小姐 1+1滴雞精-肥美鯖魚", calories: 114.4, category: "主食罐", brand: "Lady Flavor 好味小姐", meat: ["雞肉","鯖魚","鰹魚"], texture: "肉泥", origin: "台灣"},
+            {name: "Lady Flavor 好味小姐 1+1滴雞精-野味火雞", calories: 118.1, category: "主食罐", brand: "Lady Flavor 好味小姐", meat: ["火雞肉","雞肉"], texture: "肉泥", origin: "台灣"},
+            {name: "Lady Flavor 好味小姐 1+1滴雞精-香嫩鴨胸", calories: 117.3, category: "主食罐", brand: "Lady Flavor 好味小姐", meat: ["雞肉","鴨肉"], texture: "肉泥", origin: "台灣"},
+            {name: "Lady Flavor 好味小姐 1+1滴雞精-鮮香鰹魚", calories: 120.6, category: "主食罐", brand: "Lady Flavor 好味小姐", meat: ["雞肉","鰹魚"], texture: "肉泥", origin: "台灣"},
+            {name: "Lady Flavor 好味小姐 1+1益生菌 四種魚｜白肉", calories: 123.2, category: "主食罐", brand: "Lady Flavor 好味小姐", meat: ["虱目魚","雞肉","鯛魚","鰹魚","鱸魚"], texture: "肉泥", origin: "台灣"},
+            {name: "Lady Flavor 好味小姐 1+1益生菌 四種魚｜紅肉", calories: 117.8, category: "主食罐", brand: "Lady Flavor 好味小姐", meat: ["旗魚","雞肉","鮭魚","鯖魚","鰹魚"], texture: "肉泥", origin: "台灣"},
+            {name: "Lady Flavor 好味小姐 1+1益生菌 綜合海陸", calories: 117.8, category: "主食罐", brand: "Lady Flavor 好味小姐", meat: ["牛肉","雞肉","鯛魚","鰹魚"], texture: "肉泥", origin: "台灣"},
+            {name: "Lady Flavor 好味小姐 1+1益生菌 綜合蝦貝", calories: 116.3, category: "主食罐", brand: "Lady Flavor 好味小姐", meat: ["貝類","雞肉","鮮蝦"], texture: "肉泥", origin: "台灣"},
+            {name: "Lady Flavor 好味小姐 1+1益生菌 綜合野味", calories: 117.8, category: "主食罐", brand: "Lady Flavor 好味小姐", meat: ["牛肉","羊肉","雞肉","鴨肉"], texture: "肉泥", origin: "台灣"},
+            {name: "Lady Flavor 好味小姐 1+1益生菌 雞肉莓果", calories: 115.1, category: "主食罐", brand: "Lady Flavor 好味小姐", meat: ["雞肉"], texture: "肉泥", origin: "台灣"},
+            {name: "Lady Flavor 好味小姐 1+1貓鮮食 慢燉鮮魚", calories: 112.1, category: "主食罐", brand: "Lady Flavor 好味小姐", meat: ["雞肉","鮭魚","鯛魚"], texture: "肉湯", origin: "台灣"},
+            {name: "Lady Flavor 好味小姐 1+1貓鮮食 濃湯牛腿", calories: 112.1, category: "主食罐", brand: "Lady Flavor 好味小姐", meat: ["牛肉","雞肉"], texture: "肉湯", origin: "台灣"},
+            {name: "Lady Flavor 好味小姐 1+1貓鮮食 白醬嫩雞", calories: 100.1, category: "主食罐", brand: "Lady Flavor 好味小姐", meat: ["雞肉"], texture: "肉湯", origin: "台灣"},
+            {name: "LitoMON 怪獸部落 98%鮮肉-雞肉", calories: 415, category: "乾糧", brand: "LitoMON 怪獸部落", meat: ["雞肉"], texture: "乾糧", origin: "台灣"},
+            {name: "MAC's 馬克 幼貓-火雞肉+兔肉", calories: 98, category: "主食罐", brand: "MAC's 馬克", meat: ["兔肉","火雞肉"], texture: "碎肉", origin: "德國"},
+            {name: "MAC's 馬克 火雞肉+火雞心", calories: 89, category: "主食罐", brand: "MAC's 馬克", meat: ["火雞肉"], texture: "碎肉", origin: "德國"},
+            {name: "MAC's 馬克 羊肉", calories: 90, category: "主食罐", brand: "MAC's 馬克", meat: ["羊肉"], texture: "碎肉", origin: "德國"},
+            {name: "MAC's 馬克 羊肉+火雞肉", calories: 98, category: "主食罐", brand: "MAC's 馬克", meat: ["火雞肉","羊肉"], texture: "碎肉", origin: "德國"},
+            {name: "MAC's 馬克 雞肉+雞心", calories: 111, category: "主食罐", brand: "MAC's 馬克", meat: ["雞肉"], texture: "碎肉", origin: "德國"},
+            {name: "MAC's 馬克 鮭魚+雞肉", calories: 98, category: "主食罐", brand: "MAC's 馬克", meat: ["雞肉","鮭魚"], texture: "碎肉", origin: "德國"},
+            {name: "MAC's 馬克 鴨肉+火雞肉+雞肉", calories: 101, category: "主食罐", brand: "MAC's 馬克", meat: ["火雞肉","雞肉","鴨肉"], texture: "碎肉", origin: "德國"},
+            {name: "Meow Servant 喵皇奴 純雞肉", calories: 114, category: "主食罐", brand: "Meow Servant 喵皇奴", meat: ["雞肉"], texture: "肉泥", origin: "台灣"},
+            {name: "Meow Servant 喵皇奴 雞肉+牛肉", calories: 120, category: "主食罐", brand: "Meow Servant 喵皇奴", meat: ["牛肉","雞肉"], texture: "肉泥", origin: "台灣"},
+            {name: "Meow Servant 喵皇奴 鮭魚+雞肉", calories: 121, category: "主食罐", brand: "Meow Servant 喵皇奴", meat: ["雞肉","鮭魚"], texture: "肉泥", origin: "台灣"},
+            {name: "Meow Servant 喵皇奴 鵪鶉+雞肉", calories: 115, category: "主食罐", brand: "Meow Servant 喵皇奴", meat: ["雞肉","鵪鶉"], texture: "肉泥", origin: "台灣"},
+            {name: "Orijen 歐睿健 幼貓鮮雞", calories: 412, category: "乾糧", brand: "Orijen 歐睿健/極致", meat: ["混合"], texture: "乾糧", origin: "加拿大"},
+            {name: "ROYAL CANIN 皇家 K36 幼貓專用", calories: 370, category: "乾糧", brand: "ROYAL CANIN 皇家", meat: ["混合"], texture: "乾糧", origin: "法國"},
+            {name: "ROYAL CANIN 皇家 LP34 泌尿道配方乾糧", calories: 387.2, category: "乾糧", brand: "ROYAL CANIN 皇家", meat: ["混合"], texture: "乾糧", origin: "法國"},
+            {name: "ROYAL CANIN 皇家 S33W 腸胃保健", calories: 78.8, category: "主食餐包", brand: "ROYAL CANIN 皇家", meat: ["混合"], texture: "肉塊", origin: "法國"},
+            {name: "ROYAL CANIN 皇家 幼貓", calories: 80.6, category: "主食餐包", brand: "ROYAL CANIN 皇家", meat: ["混合"], texture: "肉塊", origin: "法國"},
+            {name: "ZIWIPeak 巔峰 雞肉", calories: 550, category: "乾糧", brand: "ZIWIPeak 巔峰", meat: ["雞肉"], texture: "乾糧", origin: "紐西蘭"}
         ];
 
         let foodSelectorCount = 1;
@@ -369,6 +419,7 @@
         // 初始化
         async function init() {
             populateFoodSelect('foodSelect0');
+            initSmartFoodSearch();
             
             // 綁定事件
             document.getElementById('grams0').addEventListener('input', calculateCalories);
@@ -1232,6 +1283,193 @@
                 sourceElement.innerHTML = '(💾 僅本地數據)';
                 sourceElement.style.color = '#ffc107';
             }
+        }
+
+        // ==================== 智能食物搜索功能 ====================
+        
+        let currentActiveFilters = {
+            brand: '',
+            category: '',
+            meat: [],
+            search: ''
+        };
+
+        // 初始化智能食物搜索
+        function initSmartFoodSearch() {
+            // 初始化品牌選項
+            const brands = [...new Set(foodDatabase.map(food => food.brand))].sort();
+            const brandFilter = document.getElementById('brandFilter');
+            brands.forEach(brand => {
+                const option = document.createElement('option');
+                option.value = brand;
+                option.textContent = brand;
+                brandFilter.appendChild(option);
+            });
+
+            // 初始化肉類標籤
+            const allMeats = [...new Set(foodDatabase.flatMap(food => food.meat))].sort();
+            const meatFilters = document.getElementById('meatFilters');
+            allMeats.forEach(meat => {
+                if (meat !== '混合') {
+                    const tag = document.createElement('span');
+                    tag.className = 'meat-tag';
+                    tag.textContent = meat;
+                    tag.onclick = () => toggleMeatFilter(meat, tag);
+                    tag.style.cssText = `
+                        background: #e9ecef; 
+                        border: 1px solid #ced4da; 
+                        padding: 4px 8px; 
+                        border-radius: 12px; 
+                        font-size: 12px; 
+                        cursor: pointer;
+                        user-select: none;
+                        transition: all 0.2s;
+                    `;
+                    meatFilters.appendChild(tag);
+                }
+            });
+
+            // 初始顯示所有食物
+            displayFilteredFoods(foodDatabase);
+        }
+
+        // 切換肉類篩選
+        function toggleMeatFilter(meat, element) {
+            const index = currentActiveFilters.meat.indexOf(meat);
+            if (index > -1) {
+                currentActiveFilters.meat.splice(index, 1);
+                element.style.background = '#e9ecef';
+                element.style.color = '#495057';
+            } else {
+                currentActiveFilters.meat.push(meat);
+                element.style.background = '#007bff';
+                element.style.color = 'white';
+            }
+            filterFoods();
+        }
+
+        // 篩選食物
+        function filterFoods() {
+            const brandFilter = document.getElementById('brandFilter').value;
+            const categoryFilter = document.getElementById('categoryFilter').value;
+            const searchInput = document.getElementById('searchInput').value.toLowerCase();
+
+            currentActiveFilters.brand = brandFilter;
+            currentActiveFilters.category = categoryFilter;
+            currentActiveFilters.search = searchInput;
+
+            let filteredFoods = foodDatabase.filter(food => {
+                // 品牌篩選
+                if (brandFilter && food.brand !== brandFilter) return false;
+                
+                // 分類篩選
+                if (categoryFilter && food.category !== categoryFilter) return false;
+                
+                // 肉類篩選
+                if (currentActiveFilters.meat.length > 0) {
+                    const hasSelectedMeat = currentActiveFilters.meat.some(selectedMeat => 
+                        food.meat.includes(selectedMeat)
+                    );
+                    if (!hasSelectedMeat) return false;
+                }
+                
+                // 關鍵字搜索
+                if (searchInput) {
+                    const searchText = `${food.name} ${food.brand} ${food.meat.join(' ')}`.toLowerCase();
+                    if (!searchText.includes(searchInput)) return false;
+                }
+                
+                return true;
+            });
+
+            // 按熱量排序
+            filteredFoods.sort((a, b) => a.calories - b.calories);
+
+            displayFilteredFoods(filteredFoods);
+        }
+
+        // 顯示篩選結果
+        function displayFilteredFoods(foods) {
+            const resultsContainer = document.getElementById('searchResults');
+            
+            if (foods.length === 0) {
+                resultsContainer.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">沒有找到符合條件的食物</div>';
+                return;
+            }
+
+            let html = '';
+            foods.slice(0, 20).forEach((food, index) => { // 限制顯示前20項
+                const meatText = food.meat.join(', ');
+                const calorieColor = getCalorieColor(food.calories);
+                
+                html += `
+                    <div class="search-result-item" onclick="selectFoodFromSearch(${foodDatabase.indexOf(food)})" 
+                         style="padding: 10px; border-bottom: 1px solid #eee; cursor: pointer; hover:background-color: #f8f9fa;">
+                        <div style="font-weight: bold; font-size: 14px; margin-bottom: 4px;">${food.name}</div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div style="font-size: 12px; color: #666;">
+                                <span style="background: #e7f3ff; padding: 2px 6px; border-radius: 3px; margin-right: 5px;">${food.brand}</span>
+                                <span style="background: #f0f8f0; padding: 2px 6px; border-radius: 3px; margin-right: 5px;">${food.category}</span>
+                                <span style="background: #fff3e0; padding: 2px 6px; border-radius: 3px;">${food.texture}</span>
+                            </div>
+                            <div style="font-weight: bold; color: ${calorieColor};">${food.calories} kcal/100g</div>
+                        </div>
+                        <div style="font-size: 11px; color: #888; margin-top: 4px;">🥩 ${meatText}</div>
+                    </div>
+                `;
+            });
+
+            if (foods.length > 20) {
+                html += `<div style="padding: 10px; text-align: center; color: #666; font-size: 12px;">還有 ${foods.length - 20} 項食物，請縮小搜索範圍</div>`;
+            }
+
+            resultsContainer.innerHTML = html;
+        }
+
+        // 從搜索結果選擇食物
+        function selectFoodFromSearch(foodIndex) {
+            // 找到當前活躍的食物選擇器
+            const selectors = document.querySelectorAll('#foodSelectors select');
+            let targetSelector = null;
+            
+            // 找到第一個空的選擇器
+            for (let selector of selectors) {
+                if (selector.value === '') {
+                    targetSelector = selector;
+                    break;
+                }
+            }
+            
+            // 如果沒有空的選擇器，創建一個新的
+            if (!targetSelector) {
+                addFoodSelector();
+                const newSelectors = document.querySelectorAll('#foodSelectors select');
+                targetSelector = newSelectors[newSelectors.length - 1];
+            }
+            
+            // 設置選中的食物
+            targetSelector.value = foodIndex;
+            
+            // 觸發變更事件
+            const event = new Event('change');
+            targetSelector.dispatchEvent(event);
+            
+            // 聚焦到對應的重量輸入框
+            const selectorIndex = Array.from(selectors).indexOf(targetSelector);
+            const gramsInput = document.getElementById(`grams${selectorIndex}`);
+            if (gramsInput) {
+                gramsInput.focus();
+            }
+            
+            showSyncStatus(`已選擇：${foodDatabase[foodIndex].name}`, 'success');
+        }
+
+        // 獲取熱量顏色
+        function getCalorieColor(calories) {
+            if (calories < 80) return '#28a745';      // 綠色 - 低熱量
+            if (calories < 120) return '#ffc107';    // 黃色 - 中等熱量
+            if (calories < 200) return '#fd7e14';    // 橙色 - 較高熱量
+            return '#dc3545';                        // 紅色 - 高熱量
         }
 
         // 顯示雲端選項
