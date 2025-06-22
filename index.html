@@ -922,7 +922,7 @@
 
         // 顯示後備認證選項
         function showFallbackAuth() {
-            document.getElementById('loadingAuth').style.display = 'none';
+            // loadingAuth 元素已移除
             document.getElementById('fallbackAuth').style.display = 'block';
             
             // 添加調試信息
@@ -962,8 +962,8 @@
 
         // 啟用離線模式
         function enableOfflineMode() {
-            document.getElementById('loadingAuth').style.display = 'none';
-            document.getElementById('fallbackAuth').style.display = 'none';
+            // loadingAuth 元素已移除
+            // fallbackAuth 元素已移除
             document.getElementById('googleAuth').innerHTML = `
                 <div style="background: #e8f5e8; border: 1px solid #d4edda; border-radius: 8px; padding: 15px;">
                     <h4>📱 本地模式已啟用</h4>
@@ -990,7 +990,7 @@
                     <p><small>💡 提示：您可以隨時重新整理頁面來重試 Google Drive 功能。</small></p>
                 </div>
             `;
-            document.getElementById('googleAuth').style.display = 'block';
+            // googleAuth 元素已移除
             
             showSyncStatus('已啟用本地模式 - 所有功能都可正常使用！', 'success');
             console.log('本地模式已啟用');
@@ -1190,9 +1190,9 @@
 
         // 顯示雲端選項
         function showCloudOptions() {
-            document.getElementById('loadingAuth').style.display = 'none';
-            document.getElementById('fallbackAuth').style.display = 'none';
-            document.getElementById('googleAuth').style.display = 'none';
+            // loadingAuth 元素已移除
+            // fallbackAuth 元素已移除
+            // googleAuth 元素已移除
             document.getElementById('cloudOptions').style.display = 'block';
         }
 
