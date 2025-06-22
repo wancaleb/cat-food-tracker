@@ -561,6 +561,7 @@
                             <option value="副食罐">副食罐</option>
                             <option value="乾糧">乾糧</option>
                             <option value="主食餐包">主食餐包</option>
+                            <option value="奶粉">奶粉</option>
                         </select>
                     </div>
                 </div>
@@ -600,7 +601,7 @@
                 
                 <div class="form-group">
                     <label class="form-label">實際攝取量</label>
-                    <input type="number" id="actualEatenGrams" placeholder="實際吃了多少克" step="0.1" min="0" max="999">
+                    <input type="number" id="actualEatenGrams" placeholder="實際吃了多少克（可留空）" step="0.1" min="0" max="999">
                 </div>
                 
                 <div id="actualCalories" class="total-calories" style="display: none; background: linear-gradient(135deg, var(--danger-color) 0%, #e53e3e 100%);">
@@ -704,7 +705,8 @@
             {name: "ROYAL CANIN 皇家 LP34 泌尿道配方乾糧", calories: 387.2, category: "乾糧", brand: "ROYAL CANIN 皇家", meat: ["混合"], texture: "乾糧", origin: "法國"},
             {name: "ROYAL CANIN 皇家 S33W 腸胃保健", calories: 78.8, category: "主食餐包", brand: "ROYAL CANIN 皇家", meat: ["混合"], texture: "肉塊", origin: "法國"},
             {name: "ROYAL CANIN 皇家 幼貓", calories: 80.6, category: "主食餐包", brand: "ROYAL CANIN 皇家", meat: ["混合"], texture: "肉塊", origin: "法國"},
-            {name: "ZIWIPeak 巔峰 雞肉", calories: 550, category: "乾糧", brand: "ZIWIPeak 巔峰", meat: ["雞肉"], texture: "乾糧", origin: "紐西蘭"}
+            {name: "ZIWIPeak 巔峰 雞肉", calories: 550, category: "乾糧", brand: "ZIWIPeak 巔峰", meat: ["雞肉"], texture: "乾糧", origin: "紐西蘭"},
+            {name: "森乳 高熱量奶粉", calories: 651, category: "奶粉", brand: "森乳", meat: ["動物奶"], texture: "奶粉", origin: "日本"}
         ];
 
         let foodSelectorCount = 1;
@@ -836,13 +838,21 @@
         // 計算實際攝取卡路里
         function calculateActualCalories(totalFeedCalories, totalFeedGrams) {
             const actualEatenInput = document.getElementById('actualEatenGrams');
-            let actualEatenGrams = parseFloat(actualEatenInput.value) || 0;
+            const inputValue = actualEatenInput.value.trim();
+            let actualEatenGrams;
             
-            // 如果輸入值超過總餵食量，自動調整為最大值
-            if (actualEatenGrams > totalFeedGrams) {
-                actualEatenGrams = totalFeedGrams;
-                actualEatenInput.value = totalFeedGrams.toFixed(1);
-                showSyncStatus(`實際攝取已自動調整為最大值 ${totalFeedGrams.toFixed(1)}g`, 'warning');
+            // 處理空白輸入
+            if (inputValue === '') {
+                actualEatenGrams = 0; // 空白預設為 0
+            } else {
+                actualEatenGrams = parseFloat(inputValue) || 0;
+                
+                // 如果輸入值超過總餵食量，自動調整為最大值
+                if (actualEatenGrams > totalFeedGrams) {
+                    actualEatenGrams = totalFeedGrams;
+                    actualEatenInput.value = totalFeedGrams.toFixed(1);
+                    showSyncStatus(`實際攝取已自動調整為最大值 ${totalFeedGrams.toFixed(1)}g`, 'warning');
+                }
             }
             
             if (actualEatenGrams > 0) {
@@ -871,18 +881,27 @@
             if (currentMeal.length === 0) return;
             
             const totalFeedGrams = currentMeal.reduce((sum, food) => sum + food.feedGrams, 0);
-            let actualEatenGrams = parseFloat(document.getElementById('actualEatenGrams').value);
+            const actualEatenInput = document.getElementById('actualEatenGrams').value.trim();
+            let actualEatenGrams;
             
-            if (!actualEatenGrams || actualEatenGrams <= 0) {
-                alert('請輸入實際吃了多少克');
-                return;
-            }
-            
-            // 確保實際攝取不超過總餵食量
-            if (actualEatenGrams > totalFeedGrams) {
-                actualEatenGrams = totalFeedGrams;
-                document.getElementById('actualEatenGrams').value = totalFeedGrams.toFixed(1);
-                showSyncStatus(`實際攝取已自動調整為最大值 ${totalFeedGrams.toFixed(1)}g`, 'warning');
+            // 允許空白輸入，表示還沒開始吃或還沒吃完
+            if (actualEatenInput === '') {
+                // 空白時預設為 0（表示還沒吃或還沒吃完）
+                actualEatenGrams = 0;
+                showSyncStatus('實際攝取量為空，預設為 0g（可稍後更新）', 'info');
+            } else {
+                actualEatenGrams = parseFloat(actualEatenInput);
+                if (isNaN(actualEatenGrams) || actualEatenGrams < 0) {
+                    alert('請輸入有效的實際攝取量（可留空表示還沒吃）');
+                    return;
+                }
+                
+                // 確保實際攝取不超過總餵食量
+                if (actualEatenGrams > totalFeedGrams) {
+                    actualEatenGrams = totalFeedGrams;
+                    document.getElementById('actualEatenGrams').value = totalFeedGrams.toFixed(1);
+                    showSyncStatus(`實際攝取已自動調整為最大值 ${totalFeedGrams.toFixed(1)}g`, 'warning');
+                }
             }
             
             const totalFeedCalories = currentMeal.reduce((sum, food) => sum + (food.caloriesPerGram * food.feedGrams), 0);
