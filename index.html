@@ -435,6 +435,13 @@
             setTimeout(() => {
                 if (!isGoogleApiLoaded) {
                     showFallbackAuth();
+                    // 再等 5 秒，如果用戶沒有採取行動就自動啟用本地模式
+                    setTimeout(() => {
+                        if (!isGoogleApiLoaded) {
+                            console.log('自動啟用本地模式');
+                            enableOfflineMode();
+                        }
+                    }, 5000);
                 }
             }, 15000); // 15秒後如果還沒載入完成，顯示後備選項
         }
@@ -1551,20 +1558,33 @@
             document.getElementById('googleAuth').innerHTML = `
                 <div style="background: #e8f5e8; border: 1px solid #d4edda; border-radius: 8px; padding: 15px;">
                     <h4>📱 本地模式已啟用</h4>
-                    <p>您的數據將只保存在此瀏覽器的本地存儲中。</p>
-                    <p><strong>注意：</strong></p>
-                    <ul>
-                        <li>數據不會同步到雲端</li>
-                        <li>清除瀏覽器數據會導致資料遺失</li>
-                        <li>無法在多裝置間同步</li>
-                    </ul>
-                    <p><small>您可以隨時重新整理頁面來重試 Google Drive 功能。</small></p>
+                    <p>✅ <strong>所有功能都可以正常使用！</strong></p>
+                    <p>您的數據將保存在此瀏覽器的本地存儲中。</p>
+                    
+                    <div style="background: #d1ecf1; padding: 10px; border-radius: 5px; margin: 10px 0;">
+                        <h5>📋 本地模式功能：</h5>
+                        <ul style="margin: 5px 0; padding-left: 20px;">
+                            <li>✅ 記錄餐點和卡路里</li>
+                            <li>✅ 編輯和刪除記錄</li>
+                            <li>✅ 查看卡路里趨勢圖</li>
+                            <li>✅ 數據自動保存</li>
+                        </ul>
+                    </div>
+                    
+                    <div style="background: #fff3cd; padding: 10px; border-radius: 5px; margin: 10px 0;">
+                        <h5>💾 數據備份建議：</h5>
+                        <p style="margin: 5px 0;">定期匯出數據以防資料遺失：</p>
+                        <button onclick="exportLocalData()" style="background: #007bff; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; margin: 5px 0;">匯出數據</button>
+                        <small style="display: block; margin-top: 5px;">將數據下載為 JSON 檔案保存</small>
+                    </div>
+                    
+                    <p><small>💡 提示：您可以隨時重新整理頁面來重試 Google Drive 功能。</small></p>
                 </div>
             `;
             document.getElementById('googleAuth').style.display = 'block';
             
-            showSyncStatus('已啟用本地模式 - 數據將僅保存在此瀏覽器中', 'success');
-            console.log('離線模式已啟用');
+            showSyncStatus('已啟用本地模式 - 所有功能都可正常使用！', 'success');
+            console.log('本地模式已啟用');
         }
 
         // Google API 連線測試
@@ -1759,11 +1779,49 @@
             }
         }
 
+        // 匯出本地數據
+        function exportLocalData() {
+            try {
+                const dataToExport = {
+                    version: '1.0',
+                    timestamp: new Date().toISOString(),
+                    source: 'local_storage',
+                    data: mealHistory,
+                    metadata: {
+                        totalMeals: mealHistory.length,
+                        dateRange: mealHistory.length > 0 ? {
+                            start: mealHistory[mealHistory.length - 1].date,
+                            end: mealHistory[0].date
+                        } : null,
+                        exportedFrom: window.location.href
+                    }
+                };
+
+                const dataStr = JSON.stringify(dataToExport, null, 2);
+                const dataBlob = new Blob([dataStr], {type: 'application/json'});
+                
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(dataBlob);
+                link.download = `貓咪食物追蹤數據-${new Date().toISOString().split('T')[0]}.json`;
+                
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                showSyncStatus(`已匯出 ${mealHistory.length} 筆記錄到檔案`, 'success');
+                
+            } catch (error) {
+                console.error('匯出數據失敗:', error);
+                showSyncStatus('匯出失敗: ' + error.message, 'error');
+            }
+        }
+
         // 在 window 對象上暴露調試函數供手動調用
         window.debugGoogleAPI = debugGoogleAPI;
         window.testGoogleAPI = testGoogleAPI;
         window.tryIncognitoMode = tryIncognitoMode;
         window.showFixGuide = showFixGuide;
+        window.exportLocalData = exportLocalData;
 
         // 頁面載入時初始化
         window.addEventListener('load', init);
