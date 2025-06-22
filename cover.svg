@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="card" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.95" />
+      <stop offset="100%" style="stop-color:#f8fafc;stop-opacity:0.95" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="800" height="400" fill="url(#bg)"/>
+  
+  <!-- Cloud elements -->
+  <circle cx="150" cy="80" r="25" fill="rgba(255,255,255,0.1)"/>
+  <circle cx="180" cy="80" r="30" fill="rgba(255,255,255,0.1)"/>
+  <circle cx="210" cy="80" r="25" fill="rgba(255,255,255,0.1)"/>
+  
+  <circle cx="600" cy="120" r="20" fill="rgba(255,255,255,0.08)"/>
+  <circle cx="625" cy="120" r="25" fill="rgba(255,255,255,0.08)"/>
+  <circle cx="650" cy="120" r="20" fill="rgba(255,255,255,0.08)"/>
+  
+  <!-- Central card -->
+  <rect x="150" y="120" width="500" height="200" rx="20" fill="url(#card)" opacity="0.9"/>
+  
+  <!-- Cat silhouette -->
+  <g transform="translate(200, 160)">
+    <!-- Cat body -->
+    <ellipse cx="50" cy="40" rx="35" ry="25" fill="#4ecdc4"/>
+    <!-- Cat head -->
+    <circle cx="50" cy="15" r="20" fill="#4ecdc4"/>
+    <!-- Cat ears -->
+    <polygon points="35,5 40,15 45,5" fill="#4ecdc4"/>
+    <polygon points="55,5 60,15 65,5" fill="#4ecdc4"/>
+    <!-- Cat tail -->
+    <path d="M 80 35 Q 95 20 105 30" stroke="#4ecdc4" stroke-width="8" fill="none" stroke-linecap="round"/>
+    <!-- Cat eyes -->
+    <circle cx="45" cy="12" r="2" fill="white"/>
+    <circle cx="55" cy="12" r="2" fill="white"/>
+    <!-- Cat nose -->
+    <polygon points="49,18 51,18 50,20" fill="#2d3748"/>
+  </g>
+  
+  <!-- Food bowl -->
+  <g transform="translate(450, 180)">
+    <ellipse cx="0" cy="15" rx="25" ry="8" fill="#667eea"/>
+    <ellipse cx="0" cy="10" rx="25" ry="8" fill="#764ba2"/>
+    <ellipse cx="0" cy="5" rx="20" ry="6" fill="#f093fb"/>
+  </g>
+  
+  <!-- Floating elements -->
+  <circle cx="300" cy="140" r="3" fill="rgba(255,255,255,0.6)"/>
+  <circle cx="350" cy="180" r="2" fill="rgba(255,255,255,0.5)"/>
+  <circle cx="380" cy="160" r="2.5" fill="rgba(255,255,255,0.4)"/>
+  
+  <!-- Text -->
+  <text x="400" y="280" text-anchor="middle" fill="#2d3748" font-family="Arial, sans-serif" font-size="24" font-weight="600">
+    雲端數據同步
+  </text>
+  <text x="400" y="310" text-anchor="middle" fill="#718096" font-family="Arial, sans-serif" font-size="16">
+    輕觸兩下進行設定
+  </text>
+</svg>
