@@ -430,6 +430,85 @@
             color: #856404;
         }
         
+        /* 體重記錄樣式 */
+        .weight-records {
+            margin-top: 15px;
+        }
+        
+        .weight-record-item {
+            background: var(--bg-light);
+            border-radius: var(--border-radius-sm);
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-left: 4px solid var(--accent-color);
+        }
+        
+        .weight-info {
+            flex: 1;
+        }
+        
+        .weight-main {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        
+        .weight-main strong {
+            color: var(--text-dark);
+            font-size: 1.1rem;
+        }
+        
+        .weight-date {
+            color: var(--text-light);
+            font-size: 0.9rem;
+        }
+        
+        .weight-details {
+            color: var(--text-light);
+            font-size: 0.85rem;
+            line-height: 1.4;
+        }
+        
+        .weight-actions {
+            display: flex;
+            gap: 8px;
+            flex-shrink: 0;
+            margin-left: 15px;
+        }
+        
+        .btn-edit, .btn-delete {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: var(--border-radius-sm);
+            font-size: 12px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .btn-edit:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+        
+        .btn-delete {
+            background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%);
+        }
+        
+        .btn-delete:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+            background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);
+        }
+        
         @media (max-width: 600px) {
             .container {
                 padding: 10px;
@@ -649,6 +728,27 @@
         </div>
         
         <div class="card">
+            <h2>體重記錄</h2>
+            <div class="form-group">
+                <label for="catOwnerWeight">抱貓咪的總重量 (kg):</label>
+                <input type="number" id="catOwnerWeight" step="0.1" placeholder="例如: 65.5">
+            </div>
+            <div class="form-group">
+                <label for="ownerWeight">您的體重 (kg):</label>
+                <input type="number" id="ownerWeight" step="0.1" placeholder="例如: 60.0">
+            </div>
+            <div class="form-group">
+                <label for="weightNote">備註:</label>
+                <input type="text" id="weightNote" placeholder="例如: 餐前測量">
+            </div>
+            <div class="form-buttons">
+                <button type="button" onclick="addWeightRecord()" class="btn btn-primary">新增體重記錄</button>
+                <button type="button" onclick="cancelWeightEdit()" class="btn btn-secondary" id="cancelWeightBtn" style="display: none;">取消編輯</button>
+            </div>
+            <div id="weightHistoryList"></div>
+        </div>
+        
+        <div class="card">
             <h2>飲食記錄 <span id="dataSource" style="font-size: 14px; color: #666;"></span></h2>
             <div id="historyList"></div>
         </div>
@@ -746,8 +846,10 @@
         let foodSelectorCount = 1;
         let currentMeal = [];
         let mealHistory = [];
+        let weightHistory = []; // 體重記錄陣列
         let chart = null;
         let editingMealIndex = -1;
+        let editingWeightIndex = -1; // 編輯體重記錄的索引
 
         // 初始化
         async function init() {
@@ -772,6 +874,11 @@
                 dataSource = 'local';
             }
             
+            // 載入體重歷史記錄
+            loadWeightHistoryFromStorage();
+            
+            displayHistory();
+            displayWeightHistory();
             updateChart();
             updateDataSourceDisplay();
         }
@@ -1070,7 +1177,7 @@
         function updateChart() {
             const ctx = document.getElementById('caloriesChart').getContext('2d');
             
-            // 準備圖表資料
+            // 準備熱量資料
             const dailyCalories = {};
             mealHistory.forEach(meal => {
                 if (!dailyCalories[meal.date]) {
@@ -1079,36 +1186,95 @@
                 dailyCalories[meal.date] += (meal.actualCalories || meal.totalCalories || 0);
             });
             
-            const dates = Object.keys(dailyCalories).sort();
-            const calories = dates.map(date => dailyCalories[date].toFixed(1));
+            // 準備體重資料
+            const weightData = {};
+            weightHistory.forEach(weight => {
+                weightData[weight.date] = weight.catWeight;
+            });
+            
+            // 合併所有日期並排序
+            const allDates = [...new Set([...Object.keys(dailyCalories), ...Object.keys(weightData)])].sort();
+            
+            // 準備圖表資料
+            const calories = allDates.map(date => dailyCalories[date] || null);
+            const weights = allDates.map(date => weightData[date] || null);
             
             if (chart) {
                 chart.destroy();
             }
             
+            const datasets = [];
+            
+            // 添加熱量資料集（如果有資料）
+            if (mealHistory.length > 0) {
+                datasets.push({
+                    label: '每日卡路里',
+                    data: calories,
+                    borderColor: '#3498db',
+                    backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                    tension: 0.4,
+                    fill: true,
+                    yAxisID: 'y-calories',
+                    spanGaps: true
+                });
+            }
+            
+            // 添加體重資料集（如果有資料）
+            if (weightHistory.length > 0) {
+                datasets.push({
+                    label: '貓咪體重',
+                    data: weights,
+                    borderColor: '#e74c3c',
+                    backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                    tension: 0.4,
+                    fill: false,
+                    yAxisID: 'y-weight',
+                    spanGaps: true
+                });
+            }
+            
             chart = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: dates,
-                    datasets: [{
-                        label: '每日卡路里',
-                        data: calories,
-                        borderColor: '#3498db',
-                        backgroundColor: 'rgba(52, 152, 219, 0.1)',
-                        tension: 0.4,
-                        fill: true
-                    }]
+                    labels: allDates,
+                    datasets: datasets
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
                     scales: {
-                        y: {
+                        'y-calories': {
+                            type: 'linear',
+                            display: mealHistory.length > 0,
+                            position: 'left',
                             beginAtZero: true,
                             title: {
                                 display: true,
                                 text: '卡路里 (kcal)'
-                            }
+                            },
+                            grid: {
+                                drawOnChartArea: true,
+                            },
+                        },
+                        'y-weight': {
+                            type: 'linear',
+                            display: weightHistory.length > 0,
+                            position: 'right',
+                            beginAtZero: false,
+                            title: {
+                                display: true,
+                                text: '體重 (kg)'
+                            },
+                            grid: {
+                                drawOnChartArea: false,
+                            },
+                            // 動態調整體重軸範圍以提高可讀性
+                            suggestedMin: weightHistory.length > 0 ? Math.max(0, Math.min(...weightHistory.map(w => w.catWeight)) * 0.9) : 2,
+                            suggestedMax: weightHistory.length > 0 ? Math.max(...weightHistory.map(w => w.catWeight)) * 1.1 : 8
                         },
                         x: {
                             title: {
@@ -1120,6 +1286,22 @@
                     plugins: {
                         legend: {
                             display: true
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.dataset.yAxisID === 'y-calories') {
+                                        label += context.parsed.y + ' kcal';
+                                    } else if (context.dataset.yAxisID === 'y-weight') {
+                                        label += context.parsed.y + ' kg';
+                                    }
+                                    return label;
+                                }
+                            }
                         }
                     }
                 }
@@ -2787,6 +2969,130 @@
             if (savedToken) {
                 githubToken = savedToken;
                 githubGistId = localStorage.getItem('github_gist_id') || '';
+            }
+        }
+
+        // 體重記錄相關功能
+        function addWeightRecord() {
+            const catOwnerWeight = parseFloat(document.getElementById('catOwnerWeight').value);
+            const ownerWeight = parseFloat(document.getElementById('ownerWeight').value);
+            const weightNote = document.getElementById('weightNote').value;
+            
+            if (isNaN(catOwnerWeight) || isNaN(ownerWeight)) {
+                alert('請輸入有效的重量數值');
+                return;
+            }
+            
+            const catWeight = catOwnerWeight - ownerWeight;
+            
+            if (catWeight <= 0) {
+                alert('計算出的貓咪體重不合理，請檢查輸入數值');
+                return;
+            }
+            
+            const now = new Date();
+            const weightRecord = {
+                catOwnerWeight: catOwnerWeight,
+                ownerWeight: ownerWeight,
+                catWeight: catWeight,
+                date: now.toISOString().split('T')[0],
+                note: weightNote,
+                timestamp: now.toISOString()
+            };
+            
+            if (editingWeightIndex >= 0) {
+                weightHistory[editingWeightIndex] = weightRecord;
+                editingWeightIndex = -1;
+                document.getElementById('cancelWeightBtn').style.display = 'none';
+            } else {
+                weightHistory.push(weightRecord);
+            }
+            
+            saveWeightHistoryToStorage();
+            resetWeightForm();
+            displayWeightHistory();
+            updateChart();
+        }
+        
+        function resetWeightForm() {
+            document.getElementById('catOwnerWeight').value = '';
+            document.getElementById('ownerWeight').value = '';
+            document.getElementById('weightNote').value = '';
+        }
+        
+        function displayWeightHistory() {
+            const weightHistoryList = document.getElementById('weightHistoryList');
+            
+            if (weightHistory.length === 0) {
+                weightHistoryList.innerHTML = '<p>尚無體重記錄</p>';
+                return;
+            }
+            
+            const sortedWeights = [...weightHistory].sort((a, b) => new Date(b.date) - new Date(a.date));
+            
+            let html = '<div class="weight-records">';
+            
+            sortedWeights.forEach((weight, index) => {
+                const originalIndex = weightHistory.indexOf(weight);
+                const formattedDate = new Date(weight.date).toLocaleDateString('zh-TW');
+                
+                html += `
+                    <div class="weight-record-item">
+                        <div class="weight-info">
+                            <div class="weight-main">
+                                <strong>貓咪體重: ${weight.catWeight.toFixed(1)} kg</strong>
+                                <span class="weight-date">${formattedDate}</span>
+                            </div>
+                            <div class="weight-details">
+                                抱貓重量: ${weight.catOwnerWeight.toFixed(1)} kg | 您的體重: ${weight.ownerWeight.toFixed(1)} kg
+                                ${weight.note ? `<br>備註: ${weight.note}` : ''}
+                            </div>
+                        </div>
+                        <div class="weight-actions">
+                            <button onclick="editWeightRecord(${originalIndex})" class="btn-edit">編輯</button>
+                            <button onclick="deleteWeightRecord(${originalIndex})" class="btn-delete">刪除</button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            weightHistoryList.innerHTML = html;
+        }
+        
+        function editWeightRecord(index) {
+            const weight = weightHistory[index];
+            document.getElementById('catOwnerWeight').value = weight.catOwnerWeight;
+            document.getElementById('ownerWeight').value = weight.ownerWeight;
+            document.getElementById('weightNote').value = weight.note || '';
+            
+            editingWeightIndex = index;
+            document.getElementById('cancelWeightBtn').style.display = 'inline-block';
+        }
+        
+        function deleteWeightRecord(index) {
+            if (confirm('確定要刪除這筆體重記錄嗎？')) {
+                weightHistory.splice(index, 1);
+                saveWeightHistoryToStorage();
+                displayWeightHistory();
+                updateChart();
+            }
+        }
+        
+        function cancelWeightEdit() {
+            editingWeightIndex = -1;
+            resetWeightForm();
+            document.getElementById('cancelWeightBtn').style.display = 'none';
+        }
+        
+        function saveWeightHistoryToStorage() {
+            localStorage.setItem('catWeightHistory', JSON.stringify(weightHistory));
+        }
+        
+        function loadWeightHistoryFromStorage() {
+            const saved = localStorage.getItem('catWeightHistory');
+            if (saved) {
+                weightHistory = JSON.parse(saved);
             }
         }
 
