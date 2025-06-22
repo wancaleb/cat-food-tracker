@@ -1494,8 +1494,28 @@
 
         // 初始化 GitHub 同步
         function initGitHubSync() {
-            const token = document.getElementById('githubToken').value.trim();
+            console.log('initGitHubSync 被調用');
+            
+            const tokenInput = document.getElementById('githubToken');
             const resultDiv = document.getElementById('githubSetupResult');
+            
+            console.log('tokenInput:', tokenInput);
+            console.log('resultDiv:', resultDiv);
+            
+            if (!tokenInput) {
+                console.error('找不到 githubToken 輸入框');
+                alert('找不到令牌輸入框，請重新打開設置頁面');
+                return;
+            }
+            
+            if (!resultDiv) {
+                console.error('找不到 githubSetupResult 結果區域');
+                alert('找不到結果顯示區域，請重新打開設置頁面');
+                return;
+            }
+            
+            const token = tokenInput.value.trim();
+            console.log('輸入的令牌長度:', token.length);
             
             if (!token) {
                 resultDiv.innerHTML = '<div style="background: #f8d7da; padding: 10px; border-radius: 5px; color: #721c24;">❌ 請輸入 GitHub 個人訪問令牌</div>';
