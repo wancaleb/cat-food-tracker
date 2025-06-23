@@ -2983,7 +2983,7 @@
                 return;
             }
             
-            const catWeight = catOwnerWeight - ownerWeight;
+            const catWeight = Math.round((catOwnerWeight - ownerWeight) * 100) / 100;
             
             if (catWeight <= 0) {
                 alert('計算出的貓咪體重不合理，請檢查輸入數值');
@@ -3040,11 +3040,11 @@
                     <div class="weight-record-item">
                         <div class="weight-info">
                             <div class="weight-main">
-                                <strong>貓咪體重: ${weight.catWeight.toFixed(1)} kg</strong>
+                                <strong>貓咪體重: ${weight.catWeight.toFixed(2)} kg</strong>
                                 <span class="weight-date">${formattedDate}</span>
                             </div>
                             <div class="weight-details">
-                                抱貓重量: ${weight.catOwnerWeight.toFixed(1)} kg | 您的體重: ${weight.ownerWeight.toFixed(1)} kg
+                                抱貓重量: ${weight.catOwnerWeight.toFixed(2)} kg | 您的體重: ${weight.ownerWeight.toFixed(2)} kg
                                 ${weight.note ? `<br>備註: ${weight.note}` : ''}
                             </div>
                         </div>
