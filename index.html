@@ -907,7 +907,8 @@
             // 綁定事件
             document.getElementById('grams0').addEventListener('input', calculateCalories);
             
-            // 雲端同步選項預設隱藏，等待用戶雙擊貓咪照片時才顯示
+            // 確保雲端同步設定區域隱藏在貓咪照片後面
+            hideCloudSyncSettings();
             
             // 檢查分享數據
             checkForSharedData();
