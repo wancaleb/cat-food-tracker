@@ -588,6 +588,25 @@
         
         <div id="syncStatus" class="sync-status" style="display: none;"></div>
         
+        <!-- GitHub 連接狀態指示器 -->
+        <div id="githubStatusIndicator" style="
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(255,255,255,0.95);
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            padding: 8px 12px;
+            font-size: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            z-index: 1000;
+            display: none;
+            cursor: pointer;
+        " onclick="handleGitHubStatusClick()">
+            <span id="githubStatusIcon">🔗</span>
+            <span id="githubStatusText">GitHub</span>
+        </div>
+        
         <!-- 雲端同步封面 -->
         <div class="cloud-sync-cover" ondblclick="showCloudSyncSettings()">
             <img src="cover.jpg?v=2024062215" alt="雲端數據同步" class="cover-image" id="coverImage">
@@ -910,6 +929,12 @@
             displayWeightHistory();
             updateChart();
             updateDataSourceDisplay();
+            
+            // 設定定期檢查 GitHub token 狀態（每 5 分鐘檢查一次）
+            setInterval(checkAndWarnTokenStatus, 300000);
+            
+            // 初始化時檢查一次狀態
+            checkAndWarnTokenStatus();
         }
 
         // 填充食物選項
@@ -1367,7 +1392,14 @@
                     console.log('數據已自動同步到 GitHub');
                 } catch (error) {
                     console.warn('自動同步到 GitHub 失敗:', error);
-                    showSyncStatus('自動同步失敗，請檢查網路連線', 'error');
+                    
+                    // 檢查是否為授權問題
+                    if (error.message && (error.message.includes('401') || error.message.includes('Unauthorized'))) {
+                        showSyncStatus('GitHub 令牌可能已失效，請重新設定', 'error');
+                        showTokenWarning();
+                    } else {
+                        showSyncStatus('自動同步失敗，請檢查網路連線', 'error');
+                    }
                 }
             }
         }
@@ -2770,14 +2802,180 @@
             }
         }
 
+        // 檢查 GitHub token 狀態
+        function checkGitHubTokenStatus() {
+            const savedToken = localStorage.getItem('github_token');
+            if (!savedToken && githubToken) {
+                // token 在記憶體中但不在 localStorage，可能被清除了
+                console.warn('GitHub token 可能已被瀏覽器清除');
+                showTokenWarning();
+                return false;
+            }
+            return !!savedToken;
+        }
+
+        // 顯示 token 遺失警告
+        function showTokenWarning() {
+            const warningDiv = document.createElement('div');
+            warningDiv.id = 'tokenWarning';
+            warningDiv.style.cssText = `
+                position: fixed;
+                top: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: #f8d7da;
+                color: #721c24;
+                padding: 15px 20px;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                z-index: 1000;
+                max-width: 90%;
+                text-align: center;
+                font-weight: 500;
+            `;
+            
+            warningDiv.innerHTML = `
+                <div style="margin-bottom: 10px;">⚠️ GitHub 同步令牌可能已遺失</div>
+                <div style="font-size: 0.9em; margin-bottom: 12px;">
+                    為避免資料遺失，請重新設定 GitHub 同步或手動備份資料
+                </div>
+                <button onclick="quickReconnectGitHub()" style="background: #dc3545; color: white; border: none; padding: 8px 16px; border-radius: 4px; margin-right: 10px; cursor: pointer;">
+                    重新連接 GitHub
+                </button>
+                <button onclick="exportLocalData()" style="background: #28a745; color: white; border: none; padding: 8px 16px; border-radius: 4px; margin-right: 10px; cursor: pointer;">
+                    備份資料
+                </button>
+                <button onclick="dismissTokenWarning()" style="background: #6c757d; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">
+                    稍後處理
+                </button>
+            `;
+            
+            // 移除舊的警告（如果存在）
+            const existingWarning = document.getElementById('tokenWarning');
+            if (existingWarning) {
+                existingWarning.remove();
+            }
+            
+            document.body.appendChild(warningDiv);
+            
+            // 5 分鐘後自動隱藏
+            setTimeout(() => {
+                if (document.getElementById('tokenWarning')) {
+                    dismissTokenWarning();
+                }
+            }, 300000);
+        }
+
+        // 快速重新連接 GitHub
+        function quickReconnectGitHub() {
+            dismissTokenWarning();
+            
+            const token = prompt('請輸入您的 GitHub Personal Access Token:\n\n(請確保令牌有 "gist" 權限)');
+            if (token && token.trim()) {
+                githubToken = token.trim();
+                localStorage.setItem('github_token', githubToken);
+                showSyncStatus('GitHub 令牌已更新，正在測試連接...', 'success');
+                testGitHubToken();
+            }
+        }
+
+        // 關閉令牌警告
+        function dismissTokenWarning() {
+            const warning = document.getElementById('tokenWarning');
+            if (warning) {
+                warning.remove();
+            }
+        }
+
+        // 定期檢查並警告 token 狀態
+        function checkAndWarnTokenStatus() {
+            const savedToken = localStorage.getItem('github_token');
+            const savedGistId = localStorage.getItem('github_gist_id');
+            
+            // 如果之前有設定過 GitHub 同步，但現在 token 遺失了
+            if (savedGistId && !savedToken) {
+                console.warn('偵測到 GitHub token 遺失');
+                showTokenWarning();
+                updateGitHubStatusIndicator('disconnected');
+            } else if (savedToken && savedGistId) {
+                updateGitHubStatusIndicator('connected');
+            } else {
+                updateGitHubStatusIndicator('none');
+            }
+        }
+
+        // 更新 GitHub 狀態指示器
+        function updateGitHubStatusIndicator(status) {
+            const indicator = document.getElementById('githubStatusIndicator');
+            const icon = document.getElementById('githubStatusIcon');
+            const text = document.getElementById('githubStatusText');
+            
+            if (!indicator) return;
+            
+            switch (status) {
+                case 'connected':
+                    indicator.style.display = 'block';
+                    indicator.style.background = 'rgba(212, 237, 218, 0.95)';
+                    indicator.style.borderColor = '#d4edda';
+                    icon.textContent = '✅';
+                    text.textContent = 'GitHub 已連接';
+                    break;
+                case 'disconnected':
+                    indicator.style.display = 'block';
+                    indicator.style.background = 'rgba(248, 215, 218, 0.95)';
+                    indicator.style.borderColor = '#f8d7da';
+                    icon.textContent = '⚠️';
+                    text.textContent = 'GitHub 連接異常';
+                    break;
+                case 'syncing':
+                    indicator.style.display = 'block';
+                    indicator.style.background = 'rgba(209, 236, 241, 0.95)';
+                    indicator.style.borderColor = '#d1ecf1';
+                    icon.textContent = '🔄';
+                    text.textContent = 'GitHub 同步中';
+                    break;
+                case 'none':
+                default:
+                    indicator.style.display = 'none';
+                    break;
+            }
+        }
+
+        // 處理 GitHub 狀態指示器點擊
+        function handleGitHubStatusClick() {
+            const savedToken = localStorage.getItem('github_token');
+            const savedGistId = localStorage.getItem('github_gist_id');
+            
+            if (savedGistId && !savedToken) {
+                // Token 遺失情況
+                quickReconnectGitHub();
+            } else if (savedToken && savedGistId) {
+                // 正常連接，顯示狀態
+                showSyncStatus('GitHub 同步正常運作', 'success');
+            } else {
+                // 未設定，引導設定
+                showCloudSyncSettings();
+            }
+        }
+
+
         // 保存數據到 GitHub Gist
         async function saveToGitHub() {
             if (!githubToken) {
                 showSyncStatus('GitHub 尚未連接', 'error');
+                updateGitHubStatusIndicator('none');
+                return;
+            }
+            
+            // 檢查 token 狀態
+            if (!checkGitHubTokenStatus()) {
                 return;
             }
 
             try {
+                // 顯示同步中狀態
+                updateGitHubStatusIndicator('syncing');
+                
                 // 只在有界面元素時更新狀態
                 const statusElement = document.getElementById('githubSyncStatus');
                 if (statusElement) {
@@ -2848,6 +3046,7 @@
                         `;
                     }
                     showSyncStatus('數據已成功保存到 GitHub Gist', 'success');
+                    updateGitHubStatusIndicator('connected');
                 } else {
                     throw new Error(`保存失敗: ${response.status}`);
                 }
@@ -2865,6 +3064,15 @@
                     `;
                 }
                 showSyncStatus('GitHub 保存失敗: ' + error.message, 'error');
+                
+                // 檢查是否為授權問題
+                if (error.message && (error.message.includes('401') || error.message.includes('Unauthorized'))) {
+                    updateGitHubStatusIndicator('disconnected');
+                    showTokenWarning();
+                } else {
+                    updateGitHubStatusIndicator('disconnected');
+                }
+                
                 throw error; // 重新拋出錯誤供自動同步捕獲
             }
         }
