@@ -942,6 +942,12 @@
             const select = document.getElementById(selectId);
             select.innerHTML = '<option value="">選擇食物...</option>';
             
+            // 檢查 foodDatabase 是否已載入
+            if (!foodDatabase || foodDatabase.length === 0) {
+                console.warn('食物資料庫尚未載入或為空，無法填充選項');
+                return;
+            }
+            
             foodDatabase.forEach((food, index) => {
                 const option = document.createElement('option');
                 option.value = index;
@@ -953,7 +959,12 @@
         }
 
         // 新增食物選擇器
-        function addFoodSelector() {
+        async function addFoodSelector() {
+            // 確保資料庫已載入
+            if (!foodDatabase || foodDatabase.length === 0) {
+                await loadFoodDatabase();
+            }
+            
             const container = document.getElementById('foodSelectors');
             const newSelector = document.createElement('div');
             newSelector.className = 'food-selector';
@@ -1111,8 +1122,19 @@
             const actualCalories = calculateActualCalories(totalFeedCalories, totalFeedGrams);
             
             const now = new Date();
-            const dateStr = now.toISOString().split('T')[0];
-            const timeStr = now.toTimeString().split(' ')[0].slice(0, 5);
+            // 使用台灣時區獲取正確的日期和時間
+            const dateStr = now.toLocaleDateString('zh-TW', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                timeZone: 'Asia/Taipei'
+            }).replace(/\//g, '-');
+            const timeStr = now.toLocaleTimeString('zh-TW', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false,
+                timeZone: 'Asia/Taipei'
+            });
             
             const meal = {
                 date: dateStr,
@@ -1416,9 +1438,14 @@
         }
 
         // 編輯餐點
-        function editMeal(mealIndex) {
+        async function editMeal(mealIndex) {
             const meal = mealHistory[mealIndex];
             if (!meal) return;
+            
+            // 確保資料庫已載入
+            if (!foodDatabase || foodDatabase.length === 0) {
+                await loadFoodDatabase();
+            }
             
             editingMealIndex = mealIndex;
             
@@ -1446,6 +1473,9 @@
                 const foodIndex = foodDatabase.findIndex(f => f.name === food.name);
                 if (foodIndex >= 0) {
                     document.getElementById(`foodSelect${foodSelectorCount}`).value = foodIndex;
+                } else {
+                    // 如果找不到對應食物，記錄警告但不阻止程序繼續
+                    console.warn(`編輯時找不到食物: ${food.name}`);
                 }
                 
                 document.getElementById(`grams${foodSelectorCount}`).addEventListener('input', calculateCalories);
@@ -1458,8 +1488,10 @@
             const remainingGrams = totalFeedGrams - (meal.actualEatenGrams || 0);
             document.getElementById('actualEatenGrams').value = remainingGrams > 0 ? remainingGrams.toFixed(1) : '';
             
-            // 重新計算卡路里以顯示預覽
-            calculateCalories();
+            // 延遲重新計算卡路里，確保所有選擇器都已正確設定
+            setTimeout(() => {
+                calculateCalories();
+            }, 100);
             
             // 修改按鈕文字
             document.getElementById('saveMealBtn').textContent = '更新餐點';
@@ -1554,10 +1586,12 @@
                 }
             });
 
-            // 按日期時間排序
+            // 按日期時間排序，處理格式相容性
             return merged.sort((a, b) => {
-                const dateA = new Date(`${a.date} ${a.time}`);
-                const dateB = new Date(`${b.date} ${b.time}`);
+                // 統一日期格式（處理舊格式 "/" 和新格式 "-"）
+                const formatDate = (dateStr) => dateStr.replace(/\//g, '-');
+                const dateA = new Date(`${formatDate(a.date)} ${a.time}`);
+                const dateB = new Date(`${formatDate(b.date)} ${b.time}`);
                 return dateB - dateA;
             });
         }
@@ -3242,7 +3276,12 @@
                 catOwnerWeight: catOwnerWeight,
                 ownerWeight: ownerWeight,
                 catWeight: catWeight,
-                date: now.toISOString().split('T')[0],
+                date: now.toLocaleDateString('zh-TW', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    timeZone: 'Asia/Taipei'
+                }).replace(/\//g, '-'),
                 note: weightNote,
                 timestamp: now.toISOString()
             };
