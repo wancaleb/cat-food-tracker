@@ -1121,20 +1121,29 @@
             const totalFeedCalories = currentMeal.reduce((sum, food) => sum + (food.caloriesPerGram * food.feedGrams), 0);
             const actualCalories = calculateActualCalories(totalFeedCalories, totalFeedGrams);
             
-            const now = new Date();
-            // 使用台灣時區獲取正確的日期和時間
-            const dateStr = now.toLocaleDateString('zh-TW', {
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit',
-                timeZone: 'Asia/Taipei'
-            }).replace(/\//g, '-');
-            const timeStr = now.toLocaleTimeString('zh-TW', {
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: false,
-                timeZone: 'Asia/Taipei'
-            });
+            let dateStr, timeStr;
+            
+            if (editingMealIndex >= 0) {
+                // 編輯模式：保留原本的日期時間
+                const originalMeal = mealHistory[editingMealIndex];
+                dateStr = originalMeal.date;
+                timeStr = originalMeal.time;
+            } else {
+                // 新增模式：使用台灣時區獲取當前日期和時間
+                const now = new Date();
+                dateStr = now.toLocaleDateString('zh-TW', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    timeZone: 'Asia/Taipei'
+                }).replace(/\//g, '-');
+                timeStr = now.toLocaleTimeString('zh-TW', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false,
+                    timeZone: 'Asia/Taipei'
+                });
+            }
             
             const meal = {
                 date: dateStr,
