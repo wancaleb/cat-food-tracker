@@ -3333,7 +3333,10 @@
             const importedData = JSON.parse(fileContent);
             
             // 處理新的數據格式（包含餐點和體重記錄）
-            if (importedData.data && typeof importedData.data === 'object') {
+            if (Array.isArray(importedData.data)) {
+                // 舊格式：data 直接是 mealHistory 陣列（向下相容）
+                mealHistory = importedData.data;
+            } else if (importedData.data && typeof importedData.data === 'object') {
                 // 新格式：data 是物件，包含 mealHistory 和 weightHistory
                 if (importedData.data.mealHistory && Array.isArray(importedData.data.mealHistory)) {
                     mealHistory = importedData.data.mealHistory;
@@ -3341,9 +3344,6 @@
                 if (importedData.data.weightHistory && Array.isArray(importedData.data.weightHistory)) {
                     weightHistory = importedData.data.weightHistory;
                 }
-            } else if (Array.isArray(importedData.data)) {
-                // 舊格式：data 直接是 mealHistory 陣列（向下相容）
-                mealHistory = importedData.data;
             } else {
                 throw new Error('GitHub 數據格式不正確');
             }
@@ -3381,7 +3381,11 @@
                     let mealCount = 0;
                     let weightCount = 0;
                     
-                    if (importedData.data && typeof importedData.data === 'object') {
+                    if (Array.isArray(importedData.data)) {
+                        // 舊格式：data 直接是 mealHistory 陣列（向下相容）
+                        mealHistory = importedData.data;
+                        mealCount = mealHistory.length;
+                    } else if (importedData.data && typeof importedData.data === 'object') {
                         // 新格式：data 是物件，包含 mealHistory 和 weightHistory
                         if (importedData.data.mealHistory && Array.isArray(importedData.data.mealHistory)) {
                             mealHistory = importedData.data.mealHistory;
@@ -3391,10 +3395,6 @@
                             weightHistory = importedData.data.weightHistory;
                             weightCount = weightHistory.length;
                         }
-                    } else if (Array.isArray(importedData.data)) {
-                        // 舊格式：data 直接是 mealHistory 陣列（向下相容）
-                        mealHistory = importedData.data;
-                        mealCount = mealHistory.length;
                     } else {
                         throw new Error('GitHub 數據格式不正確');
                     }
