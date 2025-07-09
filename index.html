@@ -3332,6 +3332,22 @@
             const fileContent = gist.files['cat-food-data.json'].content;
             const importedData = JSON.parse(fileContent);
             
+            // 先分析原始檔案內容
+            let originalMealCount = 0;
+            let originalWeightCount = 0;
+            
+            if (Array.isArray(importedData.data)) {
+                // 舊格式：data 直接是 mealHistory 陣列
+                originalMealCount = importedData.data.length;
+                originalWeightCount = 0; // 舊格式沒有體重記錄
+            } else if (importedData.data && typeof importedData.data === 'object') {
+                // 新格式：data 是物件，包含 mealHistory 和 weightHistory
+                originalMealCount = importedData.data.mealHistory ? importedData.data.mealHistory.length : 0;
+                originalWeightCount = importedData.data.weightHistory ? importedData.data.weightHistory.length : 0;
+            }
+            
+            console.log(`自動載入 - 原始檔案包含：${originalMealCount} 筆餐點記錄 + ${originalWeightCount} 筆體重記錄`);
+            
             // 處理新的數據格式（包含餐點和體重記錄）
             if (Array.isArray(importedData.data)) {
                 // 舊格式：data 直接是 mealHistory 陣列（向下相容）
@@ -3347,6 +3363,8 @@
             } else {
                 throw new Error('GitHub 數據格式不正確');
             }
+            
+            console.log(`自動載入 - 載入結果：${mealHistory.length} 筆餐點記錄 + ${weightHistory.length} 筆體重記錄`);
 
             // 同步到本地存儲
             saveHistoryToStorage();
@@ -3377,23 +3395,39 @@
                     const fileContent = gist.files['cat-food-data.json'].content;
                     const importedData = JSON.parse(fileContent);
                     
+                    // 先分析原始檔案內容，顯示真實筆數
+                    let originalMealCount = 0;
+                    let originalWeightCount = 0;
+                    
+                    if (Array.isArray(importedData.data)) {
+                        // 舊格式：data 直接是 mealHistory 陣列
+                        originalMealCount = importedData.data.length;
+                        originalWeightCount = 0; // 舊格式沒有體重記錄
+                    } else if (importedData.data && typeof importedData.data === 'object') {
+                        // 新格式：data 是物件，包含 mealHistory 和 weightHistory
+                        originalMealCount = importedData.data.mealHistory ? importedData.data.mealHistory.length : 0;
+                        originalWeightCount = importedData.data.weightHistory ? importedData.data.weightHistory.length : 0;
+                    }
+                    
+                    console.log(`原始檔案包含：${originalMealCount} 筆餐點記錄 + ${originalWeightCount} 筆體重記錄`);
+                    
                     // 處理新的數據格式（包含餐點和體重記錄）
-                    let mealCount = 0;
-                    let weightCount = 0;
+                    let loadedMealCount = 0;
+                    let loadedWeightCount = 0;
                     
                     if (Array.isArray(importedData.data)) {
                         // 舊格式：data 直接是 mealHistory 陣列（向下相容）
                         mealHistory = importedData.data;
-                        mealCount = mealHistory.length;
+                        loadedMealCount = mealHistory.length;
                     } else if (importedData.data && typeof importedData.data === 'object') {
                         // 新格式：data 是物件，包含 mealHistory 和 weightHistory
                         if (importedData.data.mealHistory && Array.isArray(importedData.data.mealHistory)) {
                             mealHistory = importedData.data.mealHistory;
-                            mealCount = mealHistory.length;
+                            loadedMealCount = mealHistory.length;
                         }
                         if (importedData.data.weightHistory && Array.isArray(importedData.data.weightHistory)) {
                             weightHistory = importedData.data.weightHistory;
-                            weightCount = weightHistory.length;
+                            loadedWeightCount = weightHistory.length;
                         }
                     } else {
                         throw new Error('GitHub 數據格式不正確');
@@ -3406,12 +3440,23 @@
                     displayWeightHistory();
                     updateChart();
                     
+                    // 檢查轉換是否正確
+                    const conversionCorrect = (originalMealCount === loadedMealCount) && (originalWeightCount === loadedWeightCount);
+                    const conversionStatus = conversionCorrect ? '✅ 轉換正確' : '⚠️ 轉換有問題';
+                    
                     document.getElementById('githubSyncStatus').innerHTML = `
                         <div style="background: #d4edda; padding: 10px; border-radius: 5px; color: #155724;">
-                            ✅ 已成功載入 ${mealCount} 筆餐點記錄 + ${weightCount} 筆體重記錄
+                            📂 <strong>原始檔案：</strong>${originalMealCount} 筆餐點 + ${originalWeightCount} 筆體重<br>
+                            📥 <strong>載入結果：</strong>${loadedMealCount} 筆餐點 + ${loadedWeightCount} 筆體重<br>
+                            ${conversionStatus}
                         </div>
                     `;
-                    showSyncStatus('數據已成功從 GitHub 載入', 'success');
+                    
+                    if (conversionCorrect) {
+                        showSyncStatus('數據已成功從 GitHub 載入', 'success');
+                    } else {
+                        showSyncStatus('數據載入完成，但轉換可能有問題', 'warning');
+                    }
                 } else {
                     throw new Error(`載入失敗: ${response.status}`);
                 }
