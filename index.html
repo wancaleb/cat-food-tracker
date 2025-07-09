@@ -3215,9 +3215,13 @@
                 const dataToSave = {
                     version: '1.0',
                     timestamp: new Date().toISOString(),
-                    data: mealHistory,
+                    data: {
+                        mealHistory: mealHistory,
+                        weightHistory: weightHistory
+                    },
                     metadata: {
                         totalMeals: mealHistory.length,
+                        totalWeights: weightHistory.length,
                         dateRange: mealHistory.length > 0 ? {
                             start: mealHistory[mealHistory.length - 1].date,
                             end: mealHistory[0].date
@@ -3328,13 +3332,25 @@
             const fileContent = gist.files['cat-food-data.json'].content;
             const importedData = JSON.parse(fileContent);
             
-            if (!importedData.data || !Array.isArray(importedData.data)) {
+            // 處理新的數據格式（包含餐點和體重記錄）
+            if (importedData.data && typeof importedData.data === 'object') {
+                // 新格式：data 是物件，包含 mealHistory 和 weightHistory
+                if (importedData.data.mealHistory && Array.isArray(importedData.data.mealHistory)) {
+                    mealHistory = importedData.data.mealHistory;
+                }
+                if (importedData.data.weightHistory && Array.isArray(importedData.data.weightHistory)) {
+                    weightHistory = importedData.data.weightHistory;
+                }
+            } else if (Array.isArray(importedData.data)) {
+                // 舊格式：data 直接是 mealHistory 陣列（向下相容）
+                mealHistory = importedData.data;
+            } else {
                 throw new Error('GitHub 數據格式不正確');
             }
 
-            // 直接使用 GitHub 數據，不詢問用戶
-            mealHistory = importedData.data;
-            saveHistoryToStorage(); // 同步到本地存儲
+            // 同步到本地存儲
+            saveHistoryToStorage();
+            saveWeightHistoryToStorage();
             
             return mealHistory;
         }
@@ -3361,24 +3377,41 @@
                     const fileContent = gist.files['cat-food-data.json'].content;
                     const importedData = JSON.parse(fileContent);
                     
-                    if (importedData.data && Array.isArray(importedData.data)) {
-                        // 直接使用 GitHub 數據替換本地數據
+                    // 處理新的數據格式（包含餐點和體重記錄）
+                    let mealCount = 0;
+                    let weightCount = 0;
+                    
+                    if (importedData.data && typeof importedData.data === 'object') {
+                        // 新格式：data 是物件，包含 mealHistory 和 weightHistory
+                        if (importedData.data.mealHistory && Array.isArray(importedData.data.mealHistory)) {
+                            mealHistory = importedData.data.mealHistory;
+                            mealCount = mealHistory.length;
+                        }
+                        if (importedData.data.weightHistory && Array.isArray(importedData.data.weightHistory)) {
+                            weightHistory = importedData.data.weightHistory;
+                            weightCount = weightHistory.length;
+                        }
+                    } else if (Array.isArray(importedData.data)) {
+                        // 舊格式：data 直接是 mealHistory 陣列（向下相容）
                         mealHistory = importedData.data;
-                        
-                        // 更新顯示
-                        saveHistoryToStorage();
-                        displayHistory();
-                        updateChart();
-                        
-                        document.getElementById('githubSyncStatus').innerHTML = `
-                            <div style="background: #d4edda; padding: 10px; border-radius: 5px; color: #155724;">
-                                ✅ 已成功載入 ${importedData.data.length} 筆記錄
-                            </div>
-                        `;
-                        showSyncStatus('數據已成功從 GitHub 載入', 'success');
+                        mealCount = mealHistory.length;
                     } else {
                         throw new Error('GitHub 數據格式不正確');
                     }
+                    
+                    // 更新顯示
+                    saveHistoryToStorage();
+                    saveWeightHistoryToStorage();
+                    displayHistory();
+                    displayWeightHistory();
+                    updateChart();
+                    
+                    document.getElementById('githubSyncStatus').innerHTML = `
+                        <div style="background: #d4edda; padding: 10px; border-radius: 5px; color: #155724;">
+                            ✅ 已成功載入 ${mealCount} 筆餐點記錄 + ${weightCount} 筆體重記錄
+                        </div>
+                    `;
+                    showSyncStatus('數據已成功從 GitHub 載入', 'success');
                 } else {
                     throw new Error(`載入失敗: ${response.status}`);
                 }
@@ -3491,6 +3524,7 @@
             }
             
             saveWeightHistoryToStorage();
+            syncToCloud(); // 自動同步到 GitHub
             resetWeightForm();
             displayWeightHistory();
             updateChart();
@@ -3576,6 +3610,7 @@
             if (confirm('確定要刪除這筆體重記錄嗎？')) {
                 weightHistory.splice(index, 1);
                 saveWeightHistoryToStorage();
+                syncToCloud(); // 自動同步到 GitHub
                 displayWeightHistory();
                 updateChart();
             }
