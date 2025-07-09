@@ -721,6 +721,14 @@
                     總餵食: <span id="totalFeedGrams">0</span>g | 總卡路里: <span id="totalCalories">0</span> kcal
                 </div>
                 
+                <div class="form-group" id="editDateTimeGroup" style="display: none;">
+                    <label class="form-label">日期和時間</label>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="date" id="editDate" style="flex: 1;">
+                        <input type="time" id="editTime" style="flex: 1;">
+                    </div>
+                </div>
+                
                 <div class="form-group">
                     <label class="form-label">剩餘重量</label>
                     <input type="number" id="actualEatenGrams" placeholder="剩下多少克" step="0.1" min="0" max="999" value="0">
@@ -766,11 +774,44 @@
                 <button type="button" onclick="addWeightRecord()" class="btn btn-primary">新增體重記錄</button>
                 <button type="button" onclick="cancelWeightEdit()" class="btn btn-secondary" id="cancelWeightBtn" style="display: none;">取消編輯</button>
             </div>
+            
+            <!-- 體重記錄篩選控制 -->
+            <div style="margin: 15px 0; padding: 10px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e9ecef;">
+                <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                    <label style="font-weight: bold; color: #495057;">體重篩選：</label>
+                    <select id="weightFilter" style="padding: 5px 10px; border-radius: 4px; border: 1px solid #ddd;">
+                        <option value="30">最近30天</option>
+                        <option value="90">最近90天</option>
+                        <option value="all">全部記錄</option>
+                    </select>
+                </div>
+            </div>
+            
             <div id="weightHistoryList"></div>
         </div>
         
         <div class="card">
             <h2>飲食記錄 <span id="dataSource" style="font-size: 14px; color: #666;"></span></h2>
+            
+            <!-- 歷史記錄篩選控制 -->
+            <div style="margin-bottom: 15px; padding: 15px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e9ecef;">
+                <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                    <label style="font-weight: bold; color: #495057;">快速篩選：</label>
+                    <select id="historyFilter" style="padding: 5px 10px; border-radius: 4px; border: 1px solid #ddd;">
+                        <option value="7">最近7天</option>
+                        <option value="30">最近30天</option>
+                        <option value="all">全部記錄</option>
+                        <option value="custom">自訂日期</option>
+                    </select>
+                    <div id="customDateRange" style="display: none; gap: 5px; align-items: center;">
+                        <input type="date" id="startDate" style="padding: 5px; border-radius: 4px; border: 1px solid #ddd;">
+                        <span>到</span>
+                        <input type="date" id="endDate" style="padding: 5px; border-radius: 4px; border: 1px solid #ddd;">
+                    </div>
+                    <button onclick="applyHistoryFilter()" style="padding: 5px 15px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">套用</button>
+                </div>
+            </div>
+            
             <div id="historyList"></div>
         </div>
     </div>
@@ -894,6 +935,7 @@
         let chart = null;
         let editingMealIndex = -1;
         let editingWeightIndex = -1; // 編輯體重記錄的索引
+        let currentHistoryFilter = '7'; // 預設顯示最近7天
 
         // 初始化
         async function init() {
@@ -912,6 +954,9 @@
             
             // 檢查分享數據
             checkForSharedData();
+            
+            // 初始化篩選器事件監聽器
+            initializeHistoryFilter();
             
             // 檢查已保存的 GitHub 設定並嘗試自動載入
             await initializeWithGitHub();
@@ -1124,10 +1169,19 @@
             let dateStr, timeStr;
             
             if (editingMealIndex >= 0) {
-                // 編輯模式：保留原本的日期時間
-                const originalMeal = mealHistory[editingMealIndex];
-                dateStr = originalMeal.date;
-                timeStr = originalMeal.time;
+                // 編輯模式：使用用戶輸入的日期時間
+                const dateInput = document.getElementById('editDate');
+                const timeInput = document.getElementById('editTime');
+                
+                if (dateInput.value && timeInput.value) {
+                    dateStr = dateInput.value;
+                    timeStr = timeInput.value;
+                } else {
+                    // 如果用戶沒有輸入，使用原本的日期時間
+                    const originalMeal = mealHistory[editingMealIndex];
+                    dateStr = originalMeal.date;
+                    timeStr = originalMeal.time;
+                }
             } else {
                 // 新增模式：使用台灣時區獲取當前日期和時間
                 const now = new Date();
@@ -1203,9 +1257,44 @@
             document.getElementById('saveMealBtn').textContent = '儲存這餐';
             document.getElementById('cancelEditBtn').style.display = 'none';
             document.getElementById('actualEatenGrams').value = '0';
+            document.getElementById('editDateTimeGroup').style.display = 'none';
             
             currentMeal = [];
             editingMealIndex = -1;
+        }
+
+        // 篩選歷史記錄
+        function getFilteredMealHistory() {
+            const filter = document.getElementById('historyFilter').value;
+            const today = new Date();
+            let filteredHistory = [];
+            
+            if (filter === 'all') {
+                filteredHistory = mealHistory;
+            } else if (filter === 'custom') {
+                const startDate = document.getElementById('startDate').value;
+                const endDate = document.getElementById('endDate').value;
+                
+                if (startDate && endDate) {
+                    filteredHistory = mealHistory.filter(meal => {
+                        return meal.date >= startDate && meal.date <= endDate;
+                    });
+                } else {
+                    filteredHistory = mealHistory;
+                }
+            } else {
+                // 數字天數篩選
+                const days = parseInt(filter);
+                const cutoffDate = new Date(today);
+                cutoffDate.setDate(cutoffDate.getDate() - days);
+                const cutoffDateStr = cutoffDate.toISOString().split('T')[0];
+                
+                filteredHistory = mealHistory.filter(meal => {
+                    return meal.date >= cutoffDateStr;
+                });
+            }
+            
+            return filteredHistory;
         }
 
         // 顯示歷史記錄
@@ -1217,9 +1306,17 @@
                 return;
             }
             
+            // 獲取篩選後的歷史記錄
+            const filteredHistory = getFilteredMealHistory();
+            
+            if (filteredHistory.length === 0) {
+                historyList.innerHTML = '<p>在選定的時間範圍內沒有記錄</p>';
+                return;
+            }
+            
             // 按日期分組
             const groupedHistory = {};
-            mealHistory.forEach(meal => {
+            filteredHistory.forEach(meal => {
                 if (!groupedHistory[meal.date]) {
                     groupedHistory[meal.date] = [];
                 }
@@ -1227,6 +1324,22 @@
             });
             
             historyList.innerHTML = '';
+            
+            // 顯示篩選結果資訊
+            const totalRecords = filteredHistory.length;
+            const totalDays = Object.keys(groupedHistory).length;
+            const filter = document.getElementById('historyFilter').value;
+            let filterText = '';
+            
+            if (filter === '7') filterText = '最近7天';
+            else if (filter === '30') filterText = '最近30天';
+            else if (filter === 'all') filterText = '全部記錄';
+            else if (filter === 'custom') filterText = '自訂範圍';
+            
+            const infoDiv = document.createElement('div');
+            infoDiv.style.cssText = 'margin-bottom: 15px; padding: 10px; background: #e3f2fd; border-radius: 5px; font-size: 14px; color: #1565c0;';
+            infoDiv.innerHTML = `📊 顯示：${filterText} | ${totalDays} 天 | ${totalRecords} 筆記錄`;
+            historyList.appendChild(infoDiv);
             
             Object.keys(groupedHistory).sort().reverse().forEach(date => {
                 const dayMeals = groupedHistory[date];
@@ -1264,6 +1377,68 @@
             
             // 更新數據來源顯示
             updateDataSourceDisplay();
+        }
+
+        // 套用歷史記錄篩選
+        function applyHistoryFilter() {
+            displayHistory();
+        }
+
+        // 篩選體重記錄
+        function getFilteredWeightHistory() {
+            const filter = document.getElementById('weightFilter').value;
+            const today = new Date();
+            let filteredHistory = [];
+            
+            if (filter === 'all') {
+                filteredHistory = weightHistory;
+            } else {
+                // 數字天數篩選
+                const days = parseInt(filter);
+                const cutoffDate = new Date(today);
+                cutoffDate.setDate(cutoffDate.getDate() - days);
+                const cutoffDateStr = cutoffDate.toISOString().split('T')[0];
+                
+                filteredHistory = weightHistory.filter(weight => {
+                    return weight.date >= cutoffDateStr;
+                });
+            }
+            
+            return filteredHistory;
+        }
+
+        // 初始化歷史記錄篩選器
+        function initializeHistoryFilter() {
+            const filterSelect = document.getElementById('historyFilter');
+            const customDateRange = document.getElementById('customDateRange');
+            const weightFilter = document.getElementById('weightFilter');
+            
+            // 監聽飲食記錄篩選選項變化
+            filterSelect.addEventListener('change', function() {
+                if (this.value === 'custom') {
+                    customDateRange.style.display = 'flex';
+                    // 設定預設日期範圍（最近30天）
+                    const today = new Date();
+                    const thirtyDaysAgo = new Date(today);
+                    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                    
+                    document.getElementById('endDate').value = today.toISOString().split('T')[0];
+                    document.getElementById('startDate').value = thirtyDaysAgo.toISOString().split('T')[0];
+                } else {
+                    customDateRange.style.display = 'none';
+                }
+                
+                // 自動套用篩選
+                applyHistoryFilter();
+            });
+            
+            // 監聽體重記錄篩選選項變化
+            weightFilter.addEventListener('change', function() {
+                displayWeightHistory();
+            });
+            
+            // 設定預設選項
+            filterSelect.value = currentHistoryFilter;
         }
 
         // 更新圖表
@@ -1496,6 +1671,17 @@
             const totalFeedGrams = meal.totalFeedGrams || 0;
             const remainingGrams = totalFeedGrams - (meal.actualEatenGrams || 0);
             document.getElementById('actualEatenGrams').value = remainingGrams > 0 ? remainingGrams.toFixed(1) : '';
+            
+            // 顯示日期時間編輯欄位
+            document.getElementById('editDateTimeGroup').style.display = 'block';
+            
+            // 設定日期和時間的初始值
+            // 將日期格式從 "2024-01-01" 轉換為 HTML date input 格式
+            const dateInput = document.getElementById('editDate');
+            const timeInput = document.getElementById('editTime');
+            
+            dateInput.value = meal.date;
+            timeInput.value = meal.time;
             
             // 延遲重新計算卡路里，確保所有選擇器都已正確設定
             setTimeout(() => {
@@ -2027,11 +2213,11 @@
             currentActiveFilters.search = searchInput;
 
             let filteredFoods = foodDatabase.filter(food => {
-                // 品牌篩選
-                if (brandFilter && food.brand !== brandFilter) return false;
+                // 品牌篩選 - 無視大小寫
+                if (brandFilter && food.brand.toLowerCase() !== brandFilter.toLowerCase()) return false;
                 
-                // 分類篩選
-                if (categoryFilter && food.category !== categoryFilter) return false;
+                // 分類篩選 - 無視大小寫
+                if (categoryFilter && food.category.toLowerCase() !== categoryFilter.toLowerCase()) return false;
                 
                 // 肉類篩選
                 if (currentActiveFilters.meat.length > 0) {
@@ -3323,9 +3509,28 @@
                 return;
             }
             
-            const sortedWeights = [...weightHistory].sort((a, b) => new Date(b.date) - new Date(a.date));
+            // 獲取篩選後的體重記錄
+            const filteredWeights = getFilteredWeightHistory();
             
-            let html = '<div class="weight-records">';
+            if (filteredWeights.length === 0) {
+                weightHistoryList.innerHTML = '<p>在選定的時間範圍內沒有體重記錄</p>';
+                return;
+            }
+            
+            const sortedWeights = [...filteredWeights].sort((a, b) => new Date(b.date) - new Date(a.date));
+            
+            // 顯示篩選資訊
+            const filter = document.getElementById('weightFilter').value;
+            let filterText = '';
+            if (filter === '30') filterText = '最近30天';
+            else if (filter === '90') filterText = '最近90天';
+            else if (filter === 'all') filterText = '全部記錄';
+            
+            let html = `<div style="margin-bottom: 15px; padding: 10px; background: #fff3cd; border-radius: 5px; font-size: 14px; color: #856404;">
+                📊 顯示：${filterText} | ${filteredWeights.length} 筆記錄
+            </div>`;
+            
+            html += '<div class="weight-records">';
             
             sortedWeights.forEach((weight, index) => {
                 const originalIndex = weightHistory.indexOf(weight);
