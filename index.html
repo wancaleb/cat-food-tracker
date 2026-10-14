@@ -851,54 +851,55 @@
 
         // 從 CSV 載入食物資料庫
         async function loadFoodDatabase() {
-            try {
-                const response = await fetch('CatFoodInfo.csv');
-                if (!response.ok) {
-                    throw new Error('無法載入 CSV 檔案');
-                }
-                
-                const csvText = await response.text();
-                const lines = csvText.split('\n');
-                
-                // 跳過標題行，從第二行開始處理
-                for (let i = 1; i < lines.length; i++) {
-                    const line = lines[i].trim();
-                    if (line) {
-                        // 正確解析 CSV，處理包含逗號的引號欄位
-                        const fields = parseCSVLine(line);
-                        
-                        if (fields.length >= 7) {
-                            // 處理肉類欄位 - 如果包含引號，移除引號並分割
-                            let meatTypes = fields[4];
-                            if (meatTypes.startsWith('"') && meatTypes.endsWith('"')) {
-                                meatTypes = meatTypes.slice(1, -1);
-                            }
-                            const meatArray = meatTypes.split(',').map(meat => meat.trim());
-                            
-                            foodDatabase.push({
-                                name: fields[0],
-                                category: fields[1],
-                                calories: parseFloat(fields[2]),
-                                brand: fields[3],
-                                meat: meatArray,
-                                texture: fields[5],
-                                origin: fields[6]
-                            });
-                        }
+            const sheetCsv = 'https://docs.google.com/spreadsheets/d/1Yq9jQUD0c2YVzf-8E85B6DiA8Q5HaUBUWBNDiont1VE/export?format=csv&gid=0';
+            const sources = [sheetCsv, 'CatFoodInfo.csv'];
+            for (const source of sources) {
+                try {
+                    const separator = source.includes('?') ? '&' : '?';
+                    const response = await fetch(`${source}${separator}t=${Date.now()}`, { cache: 'no-store' });
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+                    const lines = (await response.text()).split('\n');
+                    const header = parseCSVLine(lines[0].trim());
+                    if (header.join(',') !== '品名,分類,每一百克熱量,品牌,肉類,質地,產地') {
+                        throw new Error('CSV 欄位與預期不符');
                     }
+                    const foods = [];
+                    for (let i = 1; i < lines.length; i++) {
+                        const line = lines[i].trim();
+                        if (!line) continue;
+                        const fields = parseCSVLine(line);
+                        if (fields.length < 7 || !fields[0] || !Number.isFinite(parseFloat(fields[2]))) continue;
+
+                        let meatTypes = fields[4];
+                        if (meatTypes.startsWith('"') && meatTypes.endsWith('"')) {
+                            meatTypes = meatTypes.slice(1, -1);
+                        }
+                        foods.push({
+                            name: fields[0],
+                            category: fields[1],
+                            calories: parseFloat(fields[2]),
+                            brand: fields[3],
+                            meat: meatTypes.split(',').map(meat => meat.trim()),
+                            texture: fields[5],
+                            origin: fields[6]
+                        });
+                    }
+                    if (!foods.length) throw new Error('CSV 沒有有效的食物資料');
+                    foodDatabase = foods;
+                    console.log(`成功載入 ${foodDatabase.length} 個食物項目（${source}）`);
+                    return true;
+                } catch (error) {
+                    console.warn(`載入食物資料庫失敗（${source}）:`, error);
                 }
-                
-                console.log(`成功載入 ${foodDatabase.length} 個食物項目`);
-                return true;
-            } catch (error) {
-                console.error('載入食物資料庫失敗:', error);
-                // 載入失敗時使用基本的預設資料
-                foodDatabase = [
-                    {name: "Catdives 貓爾地夫 全齡貓營養升級 魩仔魚+板腱牛+雞胸肉", calories: 100.2, category: "主食罐", brand: "Catdives 貓爾地夫", meat: ["牛肉","貝類","雞肉","魩仔魚"], texture: "乾糧", origin: "台灣"},
-                    {name: "K9 Natural 無穀雞", calories: 101.3, category: "主食罐", brand: "K9 Natural", meat: ["雞肉"], texture: "肉泥", origin: "紐西蘭"}
-                ];
-                return false;
             }
+
+            // 網路和本機 CSV 都無法使用時，保留最低限度的預設資料。
+            foodDatabase = [
+                {name: "Catdives 貓爾地夫 全齡貓營養升級 魩仔魚+板腱牛+雞胸肉", calories: 100.2, category: "主食罐", brand: "Catdives 貓爾地夫", meat: ["牛肉","貝類","雞肉","魩仔魚"], texture: "乾糧", origin: "台灣"},
+                {name: "K9 Natural 無穀雞", calories: 101.3, category: "主食罐", brand: "K9 Natural", meat: ["雞肉"], texture: "肉泥", origin: "紐西蘭"}
+            ];
+            return false;
         }
 
         // 解析 CSV 行，正確處理包含逗號的引號欄位
@@ -2244,6 +2245,12 @@
         }
 
         // 顯示篩選結果
+        function escapeHtml(value) {
+            return String(value).replace(/[&<>"']/g, char => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            })[char]);
+        }
+
         function displayFilteredFoods(foods) {
             const resultsContainer = document.getElementById('searchResults');
             
@@ -2260,16 +2267,16 @@
                 html += `
                     <div class="search-result-item" onclick="selectFoodFromSearch(${foodDatabase.indexOf(food)})" 
                          style="padding: 10px; border-bottom: 1px solid #eee; cursor: pointer; hover:background-color: #f8f9fa;">
-                        <div style="font-weight: bold; font-size: 14px; margin-bottom: 4px;">${food.name}</div>
+                        <div style="font-weight: bold; font-size: 14px; margin-bottom: 4px;">${escapeHtml(food.name)}</div>
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <div style="font-size: 12px; color: #666;">
-                                <span style="background: #e7f3ff; padding: 2px 6px; border-radius: 3px; margin-right: 5px;">${food.brand}</span>
-                                <span style="background: #f0f8f0; padding: 2px 6px; border-radius: 3px; margin-right: 5px;">${food.category}</span>
-                                <span style="background: #fff3e0; padding: 2px 6px; border-radius: 3px;">${food.texture}</span>
+                                <span style="background: #e7f3ff; padding: 2px 6px; border-radius: 3px; margin-right: 5px;">${escapeHtml(food.brand)}</span>
+                                <span style="background: #f0f8f0; padding: 2px 6px; border-radius: 3px; margin-right: 5px;">${escapeHtml(food.category)}</span>
+                                <span style="background: #fff3e0; padding: 2px 6px; border-radius: 3px;">${escapeHtml(food.texture)}</span>
                             </div>
                             <div style="font-weight: bold; color: ${calorieColor};">${food.calories} kcal/100g</div>
                         </div>
-                        <div style="font-size: 11px; color: #888; margin-top: 4px;">🥩 ${meatText}</div>
+                        <div style="font-size: 11px; color: #888; margin-top: 4px;">🥩 ${escapeHtml(meatText)}</div>
                     </div>
                 `;
             });

@@ -20,6 +20,12 @@
 
 ## 🚀 快速開始
 
+### 食物資料更新
+
+食物資料以 [Google 試算表](https://docs.google.com/spreadsheets/d/1Yq9jQUD0c2YVzf-8E85B6DiA8Q5HaUBUWBNDiont1VE/edit?gid=0#gid=0) 的「工作表1」為來源。修改試算表後，重新整理網站即可讀到最新資料，不需要再手動更新 GitHub 的 CSV。試算表暫時無法存取時，網站會改用附帶的 `CatFoodInfo.csv` 備份。
+
+試算表需維持「知道連結的任何人皆可檢視」，且前七欄依序為品名、分類、每一百克熱量、品牌、肉類、質地、產地。網站只讀取食物資料，不會更動試算表。備份 CSV 可在需要時手動更新，不影響平常從試算表讀取最新資料。
+
 ### 1. 設置 Google API
 
 1. 前往 [Google Cloud Console](https://console.cloud.google.com/)
