@@ -1,0 +1,45 @@
+[
+  {
+    "brand": "Push!",
+    "category": "主食餐包",
+    "nameStartsWith": "Push! ",
+    "grams": 110
+  },
+  {
+    "brand": "Catssay 貓有話說",
+    "category": "主食餐包",
+    "nameStartsWith": "Catssay 貓有話說 鮮滴精乳鐵-",
+    "grams": 65
+  },
+  {
+    "brand": "Catssay 貓有話說",
+    "category": "主食餐包",
+    "nameStartsWith": "Catssay 貓有話說 乳鐵蛋白-",
+    "grams": 120
+  },
+  {
+    "brand": "Catssay 貓有話說",
+    "category": "主食餐包",
+    "nameStartsWith": "Catssay 貓有話說 綿密主食餐包-",
+    "grams": 120
+  },
+  {
+    "brand": "LitoMON 怪獸部落",
+    "category": "乾糧",
+    "grams": 250
+  },
+  {
+    "brand": "Orijen 歐睿健/極致",
+    "category": "乾糧",
+    "grams": 340
+  },
+  {
+    "brand": "ACANA 愛肯拿",
+    "category": "乾糧",
+    "grams": 340
+  },
+  {
+    "category": "主食罐",
+    "grams": 80
+  }
+]
