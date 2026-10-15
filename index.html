@@ -849,6 +849,23 @@
         // 貓糧資料庫 - 動態從 CSV 載入
         let foodDatabase = [];
 
+        // 常吃餐包的預設容量獨立於 Google 試算表，避免更新食物清單時被覆蓋。
+        async function applyPackageCapacities(foods) {
+            try {
+                const response = await fetch(`package-capacities.json?t=${Date.now()}`, { cache: 'no-store' });
+                if (!response.ok) return;
+                const rules = await response.json();
+                foods.forEach(food => {
+                    const rule = rules.find(item => (!item.brand || item.brand === food.brand) &&
+                        item.category === food.category &&
+                        (!item.nameStartsWith || food.name.startsWith(item.nameStartsWith)));
+                    if (rule) food.packageGrams = rule.grams;
+                });
+            } catch (error) {
+                console.warn('載入包裝容量失敗：', error);
+            }
+        }
+
         // 從 CSV 載入食物資料庫
         async function loadFoodDatabase() {
             const sheetCsv = 'https://docs.google.com/spreadsheets/d/1Yq9jQUD0c2YVzf-8E85B6DiA8Q5HaUBUWBNDiont1VE/export?format=csv&gid=0';
@@ -879,13 +896,14 @@
                             name: fields[0],
                             category: fields[1],
                             calories: parseFloat(fields[2]),
-                            brand: fields[3],
+                            brand: fields[3].trim().toLowerCase() === 'catdives 貓爾地夫' ? 'Catdives 貓爾地夫' : fields[3],
                             meat: meatTypes.split(',').map(meat => meat.trim()),
                             texture: fields[5],
                             origin: fields[6]
                         });
                     }
                     if (!foods.length) throw new Error('CSV 沒有有效的食物資料');
+                    await applyPackageCapacities(foods);
                     foodDatabase = foods;
                     console.log(`成功載入 ${foodDatabase.length} 個食物項目（${source}）`);
                     return true;
