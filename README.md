@@ -1,130 +1,49 @@
-# 🐱 貓咪飲食追蹤器
+# Choco 飲食記錄
 
-一個功能完整的貓咪飲食追蹤應用，支持多種食物混合餵食、實際攝取量記錄，以及 Google Drive 雲端同步功能。
+供手機記錄 Choco 的每餐食物、攝取熱量及體重。純前端網站，紀錄主要儲存在目前瀏覽器的 localStorage。
 
-## ✨ 主要功能
+## 網站入口
 
-### 基本功能
-- 📊 支援多種食物混合餵食記錄
-- 🍽️ 實際攝取量計算和追蹤
-- 📈 卡路里趨勢圖表顯示
-- ✏️ 餐點記錄編輯和刪除
-- 💾 本地數據儲存（localStorage）
+- 手機新版：`mobile-preview.html`，包含今天、歷史、攝取趨勢、體重、食物資料及資料與備份。
+- `index.html` 是舊版，目前根網址仍會開啟舊版。兩者使用的紀錄格式不同，新版可讀取並遷移同網域的舊版本機紀錄。
+- GitHub Pages：<https://wancaleb.github.io/cat-food-tracker/mobile-preview.html>
 
-### Google Drive 整合
-- 🔐 **Google OAuth 登入/登出**
-- ☁️ **自動/手動同步到 Google Drive**
-- 📁 **專用應用資料夾管理**
-- 🗂️ **文件選取器載入歷史數據**
-- 🔄 **智能數據合併和衝突處理**
+請透過網站網址使用。直接以 `file://` 開啟 HTML 時，瀏覽器可能阻擋食物檔案的載入；其資料空間也與正式網站不同。
 
-## 🚀 快速開始
+## 食物資料
 
-### 食物資料更新
+新版及舊版均優先讀取 [Google 試算表](https://docs.google.com/spreadsheets/d/1Yq9jQUD0c2YVzf-8E85B6DiA8Q5HaUBUWBNDiont1VE/edit?gid=0#gid=0)，失敗時使用 `CatFoodInfo.csv`。新版選食物畫面會顯示目前資料來源；重新整理會重新載入。
 
-食物資料以 [Google 試算表](https://docs.google.com/spreadsheets/d/1Yq9jQUD0c2YVzf-8E85B6DiA8Q5HaUBUWBNDiont1VE/edit?gid=0#gid=0) 的「工作表1」為來源。修改試算表後，重新整理網站即可讀到最新資料，不需要再手動更新 GitHub 的 CSV。試算表暫時無法存取時，網站會改用附帶的 `CatFoodInfo.csv` 備份。
+試算表需允許知道連結的人檢視。前七欄依序為：品名、分類、每一百克熱量、品牌、肉類、質地、產地。包裝重量預設規則放在 `package-capacities.json`。修改食物資料不會重新計算已保存餐點的熱量快照。
 
-試算表需維持「知道連結的任何人皆可檢視」，且前七欄依序為品名、分類、每一百克熱量、品牌、肉類、質地、產地。網站只讀取食物資料，不會更動試算表。備份 CSV 可在需要時手動更新，不影響平常從試算表讀取最新資料。
+## 儲存與備份
 
-### 1. 設置 Google API
+- 儲存餐點／體重會寫入此瀏覽器，不代表已備份到雲端。
+- 「匯出備份」下載 JSON，包含餐點、體重、開封包裝及刪除標記。「匯入並合併」可載入新版或相容的舊版備份。
+- GitHub Gist 按鈕沿用同網域舊版的 `github_gist_id`／`github_token` 設定。只有按下按鈕時才執行，不會自動同步。
+- 合併以紀錄 ID 對應，有修改時間時保留較新的版本；舊備份沒有修改時間且本機已有同 ID 時保留本機版本。刪除標記避免紀錄被舊備份重新帶回。
+- 同一筆舊格式紀錄兩邊都沒有修改時間時，無法自動判定哪一份更新。匯入前請先匯出本機備份。
+- 舊版 `catFoodHistory`／`catWeightHistory` 會保留。更新網站檔案不會主動清除它們。
+- 首次使用顯示空白紀錄。先前已保存的示範資料不會自動刪除，以免誤刪真實餐點。
 
-1. 前往 [Google Cloud Console](https://console.cloud.google.com/)
-2. 創建新專案或選擇現有專案
-3. 啟用以下 API：
-   - Google Drive API
-   - Google Picker API
-4. 設置 OAuth 同意畫面
-5. 創建 OAuth 2.0 客戶端 ID 和 API 密鑰
+## 本機檢查
 
-**重要安全說明：**
-- 僅使用客戶端 ID（不需要客戶端密鑰）
-- 適當限制 API 密鑰的使用範圍
-- 將您的網域添加到授權來源列表
-
-### 2. 配置應用
-
-應用已內建您的 Google API 配置，但建議您：
-
-1. 檢查 HTML 中的 `GOOGLE_CONFIG` 設定
-2. 確保您的網域在 Google Cloud Console 中已授權
-3. 測試所有功能是否正常運作
-
-## 📖 使用說明
-
-### 基本使用
-
-1. **添加餐點記錄**
-   - 選擇食物種類和重量
-   - 可添加多種食物混合
-   - 輸入實際攝取量
-   - 點擊「儲存這餐」
-
-2. **查看歷史記錄**
-   - 按日期分組顯示
-   - 可編輯或刪除個別記錄
-   - 卡路里趨勢圖表
-
-### Google Drive 同步
-
-1. **首次登入**
-   - 點擊「使用 Google 登入」
-   - 授權應用訪問您的 Google Drive
-   - 系統會自動建立專用資料夾
-
-2. **同步選項**
-   - **手動同步**：點擊「保存到 Google Drive」
-   - **自動同步**：啟用後每次修改都會自動同步
-   - **載入數據**：使用「從 Google Drive 載入」選擇歷史文件
-
-3. **數據合併**
-   - 系統會自動偵測衝突
-   - 提供選項：保留本地版本或使用雲端版本
-   - 非衝突記錄會自動合併
-
-## 🗂️ 檔案儲存格式
-
-Google Drive 中的數據檔案格式：
-```json
-{
-  "version": "1.0",
-  "timestamp": "2025-06-21T10:30:00.000Z",
-  "data": [...餐點記錄...],
-  "metadata": {
-    "totalMeals": 150,
-    "dateRange": {
-      "start": "2025-01-01",
-      "end": "2025-06-21"
-    }
-  }
-}
+```sh
+python3 -m http.server 8765
+TZ=Asia/Taipei node reliability.test.cjs
 ```
 
-## 🔧 技術特色
+測試涵蓋空白首次使用、合併衝突與刪除、跨日、編輯中日期保留、包裝備份還原、儲存失敗、食物來源回退及最近使用清單。
 
-- **純前端應用**：無需後端伺服器
-- **響應式設計**：支援各種裝置
-- **離線優先**：本地儲存確保離線可用
-- **安全整合**：遵循 Google API 最佳實務
-- **智能同步**：衝突偵測和解決機制
+手機 Safari 的鍵盤、日期選擇器及試算表連線仍需在實機確認。
 
-## 🛡️ 隱私與安全
+## 專案檔案
 
-- 所有數據儲存在您的 Google Drive 中
-- 應用僅請求必要的檔案權限
-- 不收集或傳輸個人資料到第三方
-- 認證令牌安全儲存在本地
+- `mobile-preview.html`：新版畫面與程式。
+- `index.html`：舊版畫面與程式。
+- `choco-avatar.png`：新版大頭照。
+- `CatFoodInfo.csv`／`package-capacities.json`：食物備份及包裝規則。
+- `MOBILE_REDESIGN_PLAN.md`：改版規劃歷史，部分項目是規劃，並非已實作功能。
+- `reliability.test.cjs`：資料可靠性測試。
 
-## 📱 瀏覽器支援
-
-- Chrome/Edge 90+
-- Firefox 88+
-- Safari 14+
-- 行動裝置瀏覽器
-
-## 🤝 貢獻
-
-歡迎提交 Issue 和 Pull Request！
-
-## 📄 授權
-
-MIT License
+MIT License。
