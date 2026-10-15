@@ -93,6 +93,14 @@
     .editor-section .seg .date-choice{position:relative;display:flex;align-items:center;justify-content:space-between;gap:8px;flex:1;min-width:0;height:38px;padding:0 10px;border:1px solid #e7e6ef;border-radius:11px;background:#fff;color:#596174;font-size:13px;font-weight:700;line-height:1;white-space:nowrap}
     .date-choice svg{flex:none;width:16px;height:16px;stroke:#77738d;stroke-width:1.8;fill:none;stroke-linecap:round;stroke-linejoin:round}
     .date-choice input{position:absolute;inset:0;width:100%;height:100%;max-width:none;opacity:.01;cursor:pointer;border:0;padding:0}
+    /* Prevent native date controls from forcing the utility panels wider than the phone viewport. */
+    .trend-range,.tool-form{min-width:0;max-width:100%}
+    .trend-range{grid-template-columns:minmax(0,1fr)}
+    .trend-range label,.tool-form label{min-width:0;width:100%}
+    .trend-range input[type="date"],.tool-form input[type="date"]{display:block;box-sizing:border-box;min-width:0;max-width:100%;width:100%;font-size:16px}
+    .trend-range input[type="date"]{padding:8px 9px}
+    .tool-form input[type="date"]{padding-right:10px}
+    .trend-range input[type="date"]::-webkit-calendar-picker-indicator,.tool-form input[type="date"]::-webkit-calendar-picker-indicator{margin:0;padding:0}
     @media(max-width:450px){.nav{gap:5px}.nav button{min-width:40px;padding-inline:5px}.bottom{padding-left:14px;padding-right:14px}}
     @media(max-width:450px){.app{box-shadow:none}.panel{height:100dvh;border-radius:0}.overlay{align-items:stretch}.brand-filter{margin-bottom:20px;padding-bottom:18px}.series-filter{margin-top:18px}}
   </style>
