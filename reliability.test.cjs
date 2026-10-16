@@ -11,10 +11,14 @@ vm.runInContext(script.slice(script.indexOf('  let lastCalendarDay='),script.ind
 run("state.date=dayKey(0)");clock+=120000;run('refreshCalendarDay()');assert.equal(run('state.date'),'2026-10-16');
 element.classList.contains=()=>true;clock+=86400000;run('refreshCalendarDay()');assert.equal(run('state.date'),'2026-10-16');element.classList.contains=()=>false;
 
-run(`database=[{name:'A',brand:'B',category:'乾糧'}];state.packages=[{id:'p',foodIndex:0,initialGrams:340,remainingGrams:300}]`);assert.equal(run('backupPayload().packages[0].foodName'),'A');assert.equal(run('backupPayload().packages[0].remainingGrams'),300);assert.ok(run('backupPayload().deleted.meals.deleted'));
+run(`database=[{name:'A',brand:'B',category:'乾糧'}];state.packages=[{id:'p',foodIndex:0,initialGrams:340,remainingGrams:300}]`);assert.equal(run('backupPayload().packages[0].foodName'),'A');run('importParsedData({meals:[],packages:[]})');assert.equal(run('state.packages.length'),1,'Gist merge must keep locally opened packages');assert.equal(run('backupPayload().packages[0].remainingGrams'),300);assert.ok(run('backupPayload().deleted.meals.deleted'));
 run('const savedBackup=JSON.parse(JSON.stringify(backupPayload()));state.packages=[];importParsedData(savedBackup)');assert.equal(run('state.packages[0].remainingGrams'),300);
 
 ctx.localStorage.setItem=()=>{throw Error('quota')};assert.throws(()=>run('saveAppData()'),/quota/);
 // Source fallback and persisted recent food identity.
 ctx.localStorage.setItem=(k,v)=>values.set(k,v);values.set('chocoRecentFoods',JSON.stringify(['A\u001f乾糧\u001fB']));let calls=[];ctx.fetch=async url=>{calls.push(url);if(url.startsWith('https:'))throw Error('offline');if(url==='package-capacities.json')return {ok:true,json:async()=>[]};return {ok:true,text:async()=> '品名,分類,每一百克熱量,品牌,肉類\nA,乾糧,400,B,雞肉'};};run('renderChooser=()=>{};state.packages=[]');
-(async()=>{await run('loadFoods()');assert.equal(calls.length,3);assert.equal(run('database.length'),1);assert.equal(run('recentIndices[0]'),0);console.log('PASS: syntax, empty first use, weight range, merge conflict/deletion, rollover, backup packages, storage failure, CSV fallback, recent foods');})().catch(e=>{console.error(e);process.exitCode=1});
+(async()=>{await run('loadFoods()');assert.equal(calls.length,3);assert.equal(run('database.length'),1);assert.equal(run('recentIndices[0]'),0);
+ctx.URL=URL;ctx.fetch=async()=>({ok:true,text:async()=>JSON.stringify({meals:[]})});
+assert.equal((await run(`readGistBackup({files:{'cat-food-data.json':{truncated:true,content:'{',raw_url:'https://gist.githubusercontent.com/example/raw/backup.json'}}})`)).meals.length,0);
+await assert.rejects(run(`readGistBackup({files:{'cat-food-data.json':{content:'{'}}})`),/格式不完整/);
+console.log('PASS: local package preserved during merge, truncated Gist download, malformed backup rejected');console.log('PASS: syntax, empty first use, weight range, merge conflict/deletion, rollover, backup packages, storage failure, CSV fallback, recent foods');})().catch(e=>{console.error(e);process.exitCode=1});
