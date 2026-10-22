@@ -15,6 +15,12 @@ run(`database=[{name:'A',brand:'B',category:'乾糧'}];state.packages=[{id:'p',f
 run('const savedBackup=JSON.parse(JSON.stringify(backupPayload()));state.packages=[];importParsedData(savedBackup)');assert.equal(run('state.packages[0].remainingGrams'),300);
 
 ctx.localStorage.setItem=()=>{throw Error('quota')};assert.throws(()=>run('saveAppData()'),/quota/);
+ctx.localStorage.setItem=(k,v)=>values.set(k,v);
+// Deleted packages must remain deleted across old cloud backups and page reloads.
+run("state.foods=[];discardOpenPackage('p');saveAppData();importParsedData(savedBackup)");assert.equal(run('state.packages.length'),0);assert.ok(run('backupPayload().deleted.packages.p'));
+run('loadAppData()');assert.equal(run('state.packages.length'),0);
+run("state.packages=[{id:'cloud-deleted',foodIndex:0}];importParsedData({meals:[],deleted:{packages:{'cloud-deleted':'2026-10-16T00:00:00Z'}}})");assert.equal(run('state.packages.length'),0);assert.equal(run('state.meals.length'),1,'package deletion must preserve meal history');
+console.log('PASS: package deletion survives cloud merge/reload, remote deletion applies, meal history preserved');
 // Source fallback and persisted recent food identity.
 ctx.localStorage.setItem=(k,v)=>values.set(k,v);values.set('chocoRecentFoods',JSON.stringify(['A\u001f乾糧\u001fB']));let calls=[];ctx.fetch=async url=>{calls.push(url);if(url.startsWith('https:'))throw Error('offline');if(url==='package-capacities.json')return {ok:true,json:async()=>[]};return {ok:true,text:async()=> '品名,分類,每一百克熱量,品牌,肉類\nA,乾糧,400,B,雞肉'};};run('renderChooser=()=>{};state.packages=[]');
 (async()=>{await run('loadFoods()');assert.equal(calls.length,3);assert.equal(run('database.length'),1);assert.equal(run('recentIndices[0]'),0);
