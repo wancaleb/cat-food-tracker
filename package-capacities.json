@@ -1,5 +1,15 @@
 [
   {
+    "brand": "Paw Paw Land 肉球世界",
+    "category": "主食餐包",
+    "grams": 45
+  },
+  {
+    "brand": "Beast Paradise 毛怪樂園",
+    "category": "主食餐包",
+    "grams": 50
+  },
+  {
     "brand": "Push!",
     "category": "主食餐包",
     "nameStartsWith": "Push! ",
