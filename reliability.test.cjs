@@ -15,6 +15,8 @@ element.classList.contains=()=>true;clock+=86400000;run('refreshCalendarDay()');
 run(`database=[{name:'A',brand:'B',category:'乾糧'}];state.packages=[{id:'p',foodIndex:0,initialGrams:340,remainingGrams:300}]`);assert.equal(run('backupPayload().packages[0].foodName'),'A');run('importParsedData({meals:[],packages:[]})');assert.equal(run('state.packages.length'),1,'Gist merge must keep locally opened packages');assert.equal(run('backupPayload().packages[0].remainingGrams'),300);assert.ok(run('backupPayload().deleted.meals.deleted'));
 run('const savedBackup=JSON.parse(JSON.stringify(backupPayload()));state.packages=[];importParsedData(savedBackup)');assert.equal(run('state.packages[0].remainingGrams'),300);
 
+// Intake dates must read the previous calendar day's medication, including year rollover.
+run("recordMedication('2026-11-26',false);recordMedication('2026-11-27',true);recordMedication('2025-12-31',false)");assert.equal(run("priorMedication('2026-11-27').taken"),false);assert.equal(run("medicationFor('2026-11-27').taken"),true);assert.equal(run("priorMedication('2026-01-01').taken"),false);assert.equal(run("priorMedication('2020-01-01')"),undefined);run('state.medications=[]');
 // Daily medication keeps explicit false values through reload and cloud merge.
 run("recordMedication('2026-10-16',false);saveAppData();state.medications=[];loadAppData()");assert.equal(run("medicationFor('2026-10-16').taken"),false);assert.equal(run("medicationFor('2020-01-01')"),undefined);
 run("importParsedData({medications:[{date:'2026-10-16',taken:true,updatedAt:'2020-01-01T00:00:00Z'}]})");assert.equal(run("medicationFor('2026-10-16').taken"),false,'older cloud default cannot undo unchecked medication');
